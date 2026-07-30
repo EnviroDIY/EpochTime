@@ -90,19 +90,32 @@ static_assert(EARLIEST_SANE_UNIX_TIMESTAMP < LATEST_SANE_UNIX_TIMESTAMP,
 /// @brief The number of seconds in a day
 #define SECONDS_IN_DAY 86400L
 
+#if !defined(etime_t) &&                                   \
+    ((defined(ARDUINO_SAM_DUE) && !defined(PLATFORMIO)) || \
+     defined(ARDUINO_ARCH_ARC32) || defined(ARDUINO_ARCH_PIC32))
+// For some idiotic reason, the SAM and the ARC32 core use a long integer
+// (uint16_t) instead of a long long (uint32_t) for time_t, so we need to use a
+// 32-bit unsigned integer for timestamps
+#define etime_t uint32_t
+#elif !defined(etime_t)
+// Use the time_t type for timestamps
+#define etime_t time_t
+#endif
+
 
 /**
  * @brief Set the epoch start value.
  *
- * @warning 8-bit AVR processors use a uint32_t for time_t. Given the start
- * of the first epoch here is 1900, this will roll over and cease to work
- * for processors with a uint32_t time_t on February 7, 2036 6:28:15 AM
+ * @warning 8-bit AVR - and several other = processor cores use a uint32_t for
+ * time_t. Given the start of the first epoch here is 1900, this will roll over
+ * and cease to work for processors with a uint32_t time_t on February 7, 2036
+ * 6:28:15 AM
  *
- * @note: for AVR boards time_t is a typedef for uint32_t, defined in time.h For
- * SAMD time_t is a typedef for __int_least64_t _timeval.h implicit cast to
+ * @note: for AVR boards time_t is a typedef for uint32_t, defined in time.h
+ * For SAMD time_t is a typedef for __int_least64_t _timeval.h implicit cast to
  * time_t
  */
-enum class epochStart : time_t {
+enum class epochStart : etime_t {
     unix_epoch =
         EPOCH_NIST_TO_UNIX,  ///< Use a Unix epoch, starting Jan 1, 1970.
                              ///< This is the default for this library
@@ -156,7 +169,7 @@ class epochTime {
      * @param utcOffset The offset from UTC in seconds for the timestamp;
      * optional, defaults to 0.
      */
-    epochTime(time_t timestamp, int32_t utcOffset = 0,
+    epochTime(etime_t timestamp, int32_t utcOffset = 0,
               epochStart epoch = epochStart::unix_epoch);
 
     /**
@@ -205,14 +218,14 @@ class epochTime {
      * @note The out_utcOffset and out_epoch parameters are optional and default
      * to 0 and Unix epoch, respectively.
      */
-    time_t getTimestamp(int32_t    out_utcOffset = 0,
-                        epochStart out_epoch     = epochStart::unix_epoch);
+    etime_t getTimestamp(int32_t    out_utcOffset = 0,
+                         epochStart out_epoch     = epochStart::unix_epoch);
 
  private:
     /**
      * @brief Internal reference to the timestamp IN UNIX EPOCH
      */
-    time_t _unixUTCTimestamp;
+    etime_t _unixUTCTimestamp;
 };
 
 
@@ -253,7 +266,7 @@ class TimeUtils {
      * correct timezone. The utcOffsetHours parameter is only used for
      * formatting the output string.
      */
-    static String formatISO8601(time_t epochSeconds, int8_t utcOffsetHours,
+    static String formatISO8601(etime_t epochSeconds, int8_t utcOffsetHours,
                                 epochStart epoch);
     /**
      * @brief Convert an epochTime object into a ISO8601 formatted string.
@@ -290,7 +303,7 @@ class TimeUtils {
      * hold the formatted string.  Make sure your buffer is large enough!
      */
     static void formatDateTime(char* buffer, const char* fmt,
-                               time_t epochSeconds, epochStart epoch);
+                               etime_t epochSeconds, epochStart epoch);
     /**
      * @brief Convert a single value timestamp into a String object based on the
      * input strftime format string and put it into the given buffer.
@@ -307,7 +320,7 @@ class TimeUtils {
      * @param epoch The epoch of the input epoch time.
      * @return A String object containing the formatted date and time.
      */
-    static String formatDateTime(const char* fmt, time_t epochSeconds,
+    static String formatDateTime(const char* fmt, etime_t epochSeconds,
                                  epochStart epoch);
     /**
      * @brief Convert an epoch time into a character string based on the input
@@ -372,7 +385,7 @@ class TimeUtils {
      * of the epoch).
      * @return True if the given time passes sanity range checking.
      */
-    static bool isTimeSane(time_t ts, int8_t utcOffset, epochStart epoch);
+    static bool isTimeSane(etime_t ts, int8_t utcOffset, epochStart epoch);
     /**
      * @brief Check that a given epoch time (an epochTime object) is within a
      * "sane" range.
@@ -395,8 +408,8 @@ class TimeUtils {
      * @param out_epoch The desired epoch for the output.
      * @return The timestamp in seconds since the start of the output epoch.
      */
-    static time_t convertEpoch(time_t in_timestamp, epochStart in_epoch,
-                               epochStart out_epoch);
+    static etime_t convertEpoch(etime_t in_timestamp, epochStart in_epoch,
+                                epochStart out_epoch);
 
     /**
      * @brief Convert a timestamp from one timezone to another within the same
@@ -408,8 +421,8 @@ class TimeUtils {
      * @param out_utcOffset The desired UTC offset for the output, in seconds.
      * @return The timestamp in seconds since the start of the output epoch.
      */
-    static time_t convertTZOffset(time_t in_timestamp, int32_t in_utcOffset,
-                                  int32_t out_utcOffset);
+    static etime_t convertTZOffset(etime_t in_timestamp, int32_t in_utcOffset,
+                                   int32_t out_utcOffset);
 
     /**
      * @brief Convert a timestamp from one epoch to another with different UTC
@@ -423,11 +436,11 @@ class TimeUtils {
      * @param out_epoch The desired epoch for the output.
      * @return The timestamp in seconds since the start of the output epoch.
      */
-    static time_t convertOffsetAndEpoch(time_t     in_timestamp,
-                                        int32_t    in_utcOffset,
-                                        epochStart in_epoch,
-                                        int32_t    out_utcOffset,
-                                        epochStart out_epoch);
+    static etime_t convertOffsetAndEpoch(etime_t    in_timestamp,
+                                         int32_t    in_utcOffset,
+                                         epochStart in_epoch,
+                                         int32_t    out_utcOffset,
+                                         epochStart out_epoch);
 
     /**
      * @brief Get a single value timestamp from an epochTime object in a
@@ -443,8 +456,8 @@ class TimeUtils {
      * @note The out_utcOffset and out_epoch parameters are optional and default
      * to 0 and Unix epoch, respectively.
      */
-    static time_t getTimestamp(epochTime in_time, int32_t out_utcOffset = 0,
-                               epochStart out_epoch = epochStart::unix_epoch);
+    static etime_t getTimestamp(epochTime in_time, int32_t out_utcOffset = 0,
+                                epochStart out_epoch = epochStart::unix_epoch);
 
     /**
      * @brief Initialize the core time configuration.
@@ -569,7 +582,7 @@ class TimeUtils {
      * @param unixTime A timestamp in the Unix epoch.
      * @return The timestamp in the GPS epoch.
      */
-    static time_t unix2gps(time_t unixTime);
+    static etime_t unix2gps(etime_t unixTime);
 
     /**
      * @brief Convert GPS time to Unix time.
@@ -577,7 +590,7 @@ class TimeUtils {
      * @param gpsTime A timestamp in the GPS epoch.
      * @return The timestamp in the Unix epoch.
      */
-    static time_t gps2unix(time_t gpsTime);
+    static etime_t gps2unix(etime_t gpsTime);
 };
 
 #endif

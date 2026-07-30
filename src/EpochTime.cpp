@@ -20,19 +20,19 @@ int32_t TimeUtils::_core_tz = 0;
 bool TimeUtils::_initialized = false;
 
 
-epochTime::epochTime(time_t timestamp, int32_t utcOffset, epochStart epoch) {
+epochTime::epochTime(etime_t timestamp, int32_t utcOffset, epochStart epoch) {
     _unixUTCTimestamp = TimeUtils::convertOffsetAndEpoch(
         timestamp, utcOffset, epoch, 0, epochStart::unix_epoch);
 }
 
-time_t epochTime::getTimestamp(int32_t out_utcOffset, epochStart out_epoch) {
+etime_t epochTime::getTimestamp(int32_t out_utcOffset, epochStart out_epoch) {
     return TimeUtils::getTimestamp(*this, out_utcOffset, out_epoch);
 }
 
 // This converts an epoch time (seconds since a fixed epoch start) into a
 // ISO8601 formatted string. Code modified from parts of the SparkFun RV-8803
 // library
-String TimeUtils::formatISO8601(time_t epochSeconds, int8_t utcOffsetHours,
+String TimeUtils::formatISO8601(etime_t epochSeconds, int8_t utcOffsetHours,
                                 epochStart epoch) {
     return formatISO8601(epochTime(epochSeconds, utcOffsetHours, epoch),
                          utcOffsetHours);
@@ -41,17 +41,18 @@ String TimeUtils::formatISO8601(epochTime in_time, int8_t utcOffsetHours) {
     _ensureInitialized();
     // Get a single-value timestamp for the input epochTime object in the epoch
     // and timezone offset used by the processor core (i.e., used by gmtime).
-    time_t t_c_e = TimeUtils::getTimestamp(in_time, TimeUtils::_core_tz,
-                                           TimeUtils::_core_epoch);
+    etime_t t_c_e = TimeUtils::getTimestamp(in_time, TimeUtils::_core_tz,
+                                            TimeUtils::_core_epoch);
     // convert that time to the desired timezone offset for printing
     // gmtime knows nothing about timezones, so we convert before calling it.
     // The conversion is done in seconds, so we multiply the input hours by 3600
     // to get seconds.
     time_t t = TimeUtils::convertTZOffset(t_c_e, TimeUtils::_core_tz,
-                                          utcOffsetHours * 3600);
+                                           utcOffsetHours * 3600);
 
     // create a temporary time struct
     // tm is a struct for time parts, defined in time.h
+    // NOTE: gmtime requires a true time_t as input!
     struct tm* tmp = gmtime(&t);
 
     // create a temporary buffer to put the timestamp into
@@ -79,10 +80,10 @@ String TimeUtils::formatISO8601(epochTime in_time, int8_t utcOffsetHours) {
 }
 
 void TimeUtils::formatDateTime(char* buffer, const char* fmt,
-                               time_t epochSeconds, epochStart epoch) {
+                               etime_t epochSeconds, epochStart epoch) {
     formatDateTime(buffer, fmt, epochTime(epochSeconds, 0, epoch));
 }
-String TimeUtils::formatDateTime(const char* fmt, time_t epochSeconds,
+String TimeUtils::formatDateTime(const char* fmt, etime_t epochSeconds,
                                  epochStart epoch) {
     return formatDateTime(fmt, epochTime(epochSeconds, 0, epoch));
 }
@@ -92,10 +93,11 @@ void TimeUtils::formatDateTime(char* buffer, const char* fmt,
     // Get a single-value timestamp for the input epochTime object in the epoch
     // used by the processor core (i.e., used by gmtime).
     time_t t = TimeUtils::getTimestamp(in_time, TimeUtils::_core_tz,
-                                       TimeUtils::_core_epoch);
+                                        TimeUtils::_core_epoch);
 
     // create a temporary time struct
     // tm is a struct for time parts, defined in time.h
+    // NOTE: gmtime requires a true time_t as input!
     struct tm* tmp = gmtime(&t);
 
     // use strftime (from time.h) to format the time
@@ -129,7 +131,7 @@ String TimeUtils::printEpochStart(epochStart epoch) {
     }
 }
 
-bool TimeUtils::isTimeSane(time_t ts, int8_t utcOffset, epochStart epoch) {
+bool TimeUtils::isTimeSane(etime_t ts, int8_t utcOffset, epochStart epoch) {
     return isTimeSane(epochTime(ts, utcOffset, epoch));
 }
 bool TimeUtils::isTimeSane(epochTime in_time) {
@@ -142,8 +144,8 @@ bool TimeUtils::isTimeSane(epochTime in_time) {
     }
 }
 
-time_t TimeUtils::convertEpoch(time_t in_timestamp, epochStart in_epoch,
-                               epochStart out_epoch) {
+etime_t TimeUtils::convertEpoch(etime_t in_timestamp, epochStart in_epoch,
+                                epochStart out_epoch) {
     switch (in_epoch) {
         case epochStart::unix_epoch: {
             switch (out_epoch) {
@@ -225,22 +227,22 @@ time_t TimeUtils::convertEpoch(time_t in_timestamp, epochStart in_epoch,
     }
 }
 
-time_t TimeUtils::convertTZOffset(time_t in_timestamp, int32_t in_utcOffset,
-                                  int32_t out_utcOffset) {
+etime_t TimeUtils::convertTZOffset(etime_t in_timestamp, int32_t in_utcOffset,
+                                   int32_t out_utcOffset) {
     return in_timestamp + (out_utcOffset - in_utcOffset);
 }
 
-time_t TimeUtils::convertOffsetAndEpoch(time_t     in_timestamp,
-                                        int32_t    in_utcOffset,
-                                        epochStart in_epoch,
-                                        int32_t    out_utcOffset,
-                                        epochStart out_epoch) {
+etime_t TimeUtils::convertOffsetAndEpoch(etime_t    in_timestamp,
+                                         int32_t    in_utcOffset,
+                                         epochStart in_epoch,
+                                         int32_t    out_utcOffset,
+                                         epochStart out_epoch) {
     return convertTZOffset(convertEpoch(in_timestamp, in_epoch, out_epoch),
                            in_utcOffset, out_utcOffset);
 }
 
-time_t TimeUtils::getTimestamp(epochTime in_time, int32_t out_utcOffset,
-                               epochStart out_epoch) {
+etime_t TimeUtils::getTimestamp(epochTime in_time, int32_t out_utcOffset,
+                                epochStart out_epoch) {
     return convertOffsetAndEpoch(in_time._unixUTCTimestamp, 0,
                                  epochStart::unix_epoch, out_utcOffset,
                                  out_epoch);
@@ -264,7 +266,8 @@ void TimeUtils::_ensureInitialized() {
 // the processor then this should work regardless of how the year is
 // represented within the tm structs.
 epochStart TimeUtils::getProcessorEpochStart() {
-    time_t     epoch_zero    = 0;
+    // NOTE: gmtime requires a true time_t as input!
+    time_t    epoch_zero    = 0;
     struct tm* epoch_zero_tm = gmtime(&epoch_zero);
     // create a temporary buffer to put the timestamp into
     char epoch_zero_year[5];  // Max of yyyy with \0 terminator
@@ -305,10 +308,10 @@ int32_t TimeUtils::getProcessorTimeZone() {
     timeParts.tm_wday  = 0;   /* day of week, will be calculated */
     timeParts.tm_yday  = 0;   /* day of year, will be calculated */
     timeParts.tm_isdst = 0;   /* daylight saving time flag */
-    time_t timeTimeT   = mktime(&timeParts);
+    etime_t timeTimeT  = mktime(&timeParts);
 
     // Check for mktime failure
-    if (timeTimeT == (time_t)-1) {
+    if (timeTimeT == (etime_t)-1) {
         TimeUtils::_core_tz = 0;
         return 0;
     }
@@ -320,20 +323,20 @@ int32_t TimeUtils::getProcessorTimeZone() {
     // initialized before this function is called.
     epochTime timeEpoch(timeTimeT, 0, TimeUtils::_core_epoch);
     // get a timestamp in the Y2K epoch
-    time_t timeY2K = TimeUtils::getTimestamp(timeEpoch, 0,
-                                             epochStart::y2k_epoch);
+    etime_t timeY2K = TimeUtils::getTimestamp(timeEpoch, 0,
+                                              epochStart::y2k_epoch);
     // Since we started with Jan 1, 2000, the offset from the input time and 0
     // in the Y2K epoch can only be caused by timezone shifts within the mktime
     // function.
     // Handle both signed and unsigned time_t properly
     // Check if time_t is signed by testing if (time_t)-1 < (time_t)0
     int32_t        tz_offset;
-    constexpr bool is_time_t_signed = ((time_t)-1 < (time_t)0);
+    constexpr bool is_time_t_signed = ((etime_t)-1 < (etime_t)0);
 
     if (is_time_t_signed) {
         // For signed time_t, negative values are represented normally
-        if (timeY2K >= -static_cast<time_t>(SECONDS_IN_DAY) &&
-            timeY2K <= static_cast<time_t>(SECONDS_IN_DAY)) {
+        if (timeY2K >= -static_cast<etime_t>(SECONDS_IN_DAY) &&
+            timeY2K <= static_cast<etime_t>(SECONDS_IN_DAY)) {
             tz_offset = static_cast<int32_t>(timeY2K);
         } else {
             tz_offset = 0;  // Outside reasonable timezone range (±24 hours)
@@ -345,10 +348,10 @@ int32_t TimeUtils::getProcessorTimeZone() {
             tz_offset = static_cast<int32_t>(timeY2K);
         } else {
             // Check if this looks like a wrapped negative value
-            const time_t max_unsigned = (time_t)-1;
+            const etime_t max_unsigned = (etime_t)-1;
             if (timeY2K > (max_unsigned - SECONDS_IN_DAY)) {
                 // This is likely a wrapped negative offset
-                time_t offsetMagnitude = max_unsigned - timeY2K + 1;
+                etime_t offsetMagnitude = max_unsigned - timeY2K + 1;
                 tz_offset              = -static_cast<int32_t>(offsetMagnitude);
             } else {
                 tz_offset = 0;  // Outside reasonable timezone range
@@ -382,7 +385,7 @@ int8_t TimeUtils::countLeaps(uint32_t gpsTime, bool unix2gps) {
 }
 
 // Convert Unix Time to GPS Time
-time_t TimeUtils::unix2gps(time_t unixTime) {
+etime_t TimeUtils::unix2gps(etime_t unixTime) {
     // Add offset in seconds
     bool isLeap;
     if (fmod(unixTime, 1) != 0) {
@@ -391,16 +394,16 @@ time_t TimeUtils::unix2gps(time_t unixTime) {
     } else {
         isLeap = 0;
     }
-    time_t gpsTime = unixTime - EPOCH_UNIX_TO_GPS;
+    etime_t gpsTime = unixTime - EPOCH_UNIX_TO_GPS;
     int8_t nLeaps  = countLeaps(gpsTime, true);
     gpsTime        = gpsTime + nLeaps + isLeap;
     return gpsTime;
 }
 
 // Convert GPS Time to Unix Time
-time_t TimeUtils::gps2unix(time_t gpsTime) {
+etime_t TimeUtils::gps2unix(etime_t gpsTime) {
     // Add offset in seconds
-    time_t unixTime = gpsTime + EPOCH_UNIX_TO_GPS;
+    etime_t unixTime = gpsTime + EPOCH_UNIX_TO_GPS;
     int8_t nLeaps   = countLeaps(gpsTime, false);
     unixTime        = unixTime - nLeaps;
     if (isLeap(gpsTime)) { unixTime = unixTime + 0.5; }

@@ -2629,7 +2629,8 @@ PREDEFINED             = DOXYGEN=1 \
                          ARDUINO=10808 \
                          __AVR_ATmega1284P__ \
                          NEOSWSERIAL_EXTERNAL_PCINT \
-                         SERIAL_PORT_USBVIRTUAL=0
+                         SERIAL_PORT_USBVIRTUAL=0 \
+                         etime_t=time_t
 
 # If the MACRO_EXPANSION and EXPAND_ONLY_PREDEF tags are set to YES then this
 # tag can be used to specify a list of macro names that should be expanded. The
