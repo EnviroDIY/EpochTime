@@ -11,8 +11,7 @@
 // Include the main header
 #include <EpochTime.h>
 
-#if (defined(ARDUINO_ARCH_NRF52840) || defined(ARDUINO_NRF52840_FEATHER)) && \
-    !defined(PLATFORMIO)
+#if (defined(ARDUINO_NRF52840_FEATHER)) && !defined(PLATFORMIO)
 #include <Adafruit_TinyUSB.h>  // for Serial
 #endif
 
