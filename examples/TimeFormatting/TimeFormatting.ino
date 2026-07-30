@@ -29,7 +29,7 @@ void setup() {
     Serial.println("epochTime and TimeUtils Demo");
     Serial.println("----------------------------");
     Serial.println("Input Timestamp: " + String(myTimestamp));
-    Serial.println("Input Offset from UTC in Seconds: " + myOffset);
+    Serial.println("Input Offset from UTC in Seconds: " + String(myOffset));
     Serial.println("Input Epoch: " + TimeUtils::printEpochName(myEpoch) +
                    " (start: " + TimeUtils::printEpochStart(myEpoch) + ")");
 
@@ -63,7 +63,7 @@ void setup() {
     epochTime myEpochTime(myTimestamp, myOffset, myEpoch);
     // Get a single value timestamp in the Y2K epoch with a GMT-5 offset
     time_t ts_EST_Y2K_2 = TimeUtils::getTimestamp(myEpochTime, -5 * 3600,
-                                                   epochStart::y2k_epoch);
+                                                  epochStart::y2k_epoch);
     Serial.print(
         "Converted Timestamp (GMT-5, Y2K), from EpochTime static method: ");
     Serial.println(ts_EST_Y2K_2);
@@ -87,25 +87,27 @@ void setup() {
 
     // check if the timestamp is equal to a different timestamp
     Serial.println("Checking that the epochTime object's timestamp is equal to "
-                   "a different timestamp: ");
+                   "2026-07-30T01:13:46Z-04:00");
     if (myEpochTime ==
-        epochTime(1785431629, -5 * 3600, epochStart::unix_epoch)) {
-        Serial.println("The timestamps are equal!");
+        epochTime(1785431629, -4 * 3600, epochStart::unix_epoch)) {
+        Serial.println("\tThe timestamps are equal!");
     } else {
-        Serial.println("The timestamps are NOT equal!");
+        Serial.println("\tThe timestamps are NOT equal!");
     }
 
     // Print the time in various formats
     Serial.println("\n\nTime Formatting Example");
     Serial.println("-----------------------");
-    Serial.print("ISO 8601, from a epochTime object: ");
+    Serial.print("ISO 8601, UTC-5, from the epochTime object (timezone should "
+                 "be converted): ");
     Serial.println(TimeUtils::formatISO8601(myEpochTime, -5));
-    Serial.print("ISO 8601, from a single timestamp: ");
+    Serial.print("ISO 8601, input timezone, from a single timestamp (assumes "
+                 "input and output are in the same timezone): ");
     Serial.println(TimeUtils::formatISO8601(myTimestamp, myOffset, myEpoch));
-    Serial.print("Custom Format, from a epochTime object: ");
+    Serial.print("Custom Format, from a epochTime object (timezone IGNORED): ");
     Serial.println(
         TimeUtils::formatDateTime("%A, %B %d, %Y %H:%M:%S", myEpochTime));
-    Serial.print("Custom Format, from a single timestamp: ");
+    Serial.print("Custom Format, from a single timestamp (timezone IGNORED): ");
     Serial.println(TimeUtils::formatDateTime("%A, %B %d, %Y %H:%M:%S",
                                              myTimestamp, myEpoch));
 

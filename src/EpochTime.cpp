@@ -40,9 +40,15 @@ String TimeUtils::formatISO8601(time_t epochSeconds, int8_t utcOffsetHours,
 String TimeUtils::formatISO8601(epochTime in_time, int8_t utcOffsetHours) {
     _ensureInitialized();
     // Get a single-value timestamp for the input epochTime object in the epoch
-    // used by the processor core (i.e., used by gmtime).
-    time_t t = TimeUtils::getTimestamp(in_time, TimeUtils::_core_tz,
-                                       TimeUtils::_core_epoch);
+    // and timezone offset used by the processor core (i.e., used by gmtime).
+    time_t t_c_e = TimeUtils::getTimestamp(in_time, TimeUtils::_core_tz,
+                                           TimeUtils::_core_epoch);
+    // convert that time to the desired timezone offset for printing
+    // gmtime knows nothing about timezones, so we convert before calling it.
+    // The conversion is done in seconds, so we multiply the input hours by 3600
+    // to get seconds.
+    time_t t = TimeUtils::convertTZOffset(t_c_e, TimeUtils::_core_tz,
+                                          utcOffsetHours * 3600);
 
     // create a temporary time struct
     // tm is a struct for time parts, defined in time.h
@@ -137,7 +143,7 @@ bool TimeUtils::isTimeSane(epochTime in_time) {
 }
 
 time_t TimeUtils::convertEpoch(time_t in_timestamp, epochStart in_epoch,
-                                epochStart out_epoch) {
+                               epochStart out_epoch) {
     switch (in_epoch) {
         case epochStart::unix_epoch: {
             switch (out_epoch) {
@@ -220,21 +226,21 @@ time_t TimeUtils::convertEpoch(time_t in_timestamp, epochStart in_epoch,
 }
 
 time_t TimeUtils::convertTZOffset(time_t in_timestamp, int32_t in_utcOffset,
-                                   int32_t out_utcOffset) {
+                                  int32_t out_utcOffset) {
     return in_timestamp + (out_utcOffset - in_utcOffset);
 }
 
 time_t TimeUtils::convertOffsetAndEpoch(time_t     in_timestamp,
-                                         int32_t    in_utcOffset,
-                                         epochStart in_epoch,
-                                         int32_t    out_utcOffset,
-                                         epochStart out_epoch) {
+                                        int32_t    in_utcOffset,
+                                        epochStart in_epoch,
+                                        int32_t    out_utcOffset,
+                                        epochStart out_epoch) {
     return convertTZOffset(convertEpoch(in_timestamp, in_epoch, out_epoch),
                            in_utcOffset, out_utcOffset);
 }
 
 time_t TimeUtils::getTimestamp(epochTime in_time, int32_t out_utcOffset,
-                                epochStart out_epoch) {
+                               epochStart out_epoch) {
     return convertOffsetAndEpoch(in_time._unixUTCTimestamp, 0,
                                  epochStart::unix_epoch, out_utcOffset,
                                  out_epoch);
