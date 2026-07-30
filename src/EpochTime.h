@@ -236,37 +236,21 @@ class epochTime {
                                         epochStart out_epoch);
 
     /**
-     * @brief Convert an epochTime object to a timestamp in a different epoch
-     * within the same UTC offset.
+     * @brief Get a single value timestamp from an epochTime object in a
+     * specific epoch and timezone.
      *
      * @param in_time An epochTime object.
-     * @param out_epoch The desired epoch for the output.
-     * @return The timestamp in seconds since the start of the output epoch.
+     * @param out_utcOffset The desired UTC offset for the output, in seconds,
+     * optional (defaults to 0).
+     * @param out_epoch The desired epoch for the output, optional (defaults to
+     * Unix epoch).
+     * @return The timestamp in seconds since the start of the output epoch at
+     * the output offset from UTC.
+     * @note The out_utcOffset and out_epoch parameters are optional and default
+     * to 0 and Unix epoch, respectively.
      */
-    static time_t convertEpoch(epochTime in_time, epochStart out_epoch);
-
-    /**
-     * @brief Convert an epochTime object from one timezone to another within
-     * the same epoch.
-     *
-     * @param in_time An epochTime object.
-     * @param out_utcOffset The desired UTC offset for the output, in seconds.
-     * @return The timestamp in seconds since the start of the output epoch.
-     */
-    static time_t convertTZOffset(epochTime in_time, int32_t out_utcOffset);
-
-    /**
-     * @brief Convert an epochTime object to a timestamp in a different epoch
-     * with different UTC offsets.
-     *
-     * @param in_time An epochTime object.
-     * @param out_utcOffset The desired UTC offset for the output, in seconds.
-     * @param out_epoch The desired epoch for the output.
-     * @return The timestamp in seconds since the start of the output epoch.
-     */
-    static time_t convertOffsetAndEpoch(epochTime  in_time,
-                                        int32_t    out_utcOffset,
-                                        epochStart out_epoch);
+    static time_t getTimestamp(epochTime in_time, int32_t out_utcOffset = 0,
+                               epochStart out_epoch = epochStart::unix_epoch);
 
     /**
      * @brief Convert Unix time to GPS time.

@@ -111,18 +111,8 @@ time_t epochTime::convertOffsetAndEpoch(time_t     in_timestamp,
                            in_utcOffset, out_utcOffset);
 }
 
-time_t epochTime::convertEpoch(epochTime in_time, epochStart out_epoch) {
-    return convertEpoch(in_time._unixUTCTimestamp, epochStart::unix_epoch,
-                        out_epoch);
-}
-
-time_t epochTime::convertTZOffset(epochTime in_time, int32_t out_utcOffset) {
-    return convertTZOffset(in_time._unixUTCTimestamp, 0, out_utcOffset);
-}
-
-time_t epochTime::convertOffsetAndEpoch(epochTime  in_time,
-                                        int32_t    out_utcOffset,
-                                        epochStart out_epoch) {
+time_t epochTime::getTimestamp(epochTime in_time, int32_t out_utcOffset,
+                               epochStart out_epoch) {
     return convertOffsetAndEpoch(in_time._unixUTCTimestamp, 0,
                                  epochStart::unix_epoch, out_utcOffset,
                                  out_epoch);
@@ -197,10 +187,10 @@ String TimeUtils::formatISO8601(time_t epochSeconds, int8_t utcOffsetHours,
 }
 String TimeUtils::formatISO8601(epochTime in_time, int8_t utcOffsetHours) {
     _ensureInitialized();
-    // Use the conversion function to get a temporary variable for the epoch
-    // time in the epoch used by the processor core (i.e., used by gmtime).
-    time_t t = epochTime::convertOffsetAndEpoch(in_time, TimeUtils::_core_tz,
-                                                TimeUtils::_core_epoch);
+    // Get a single-value timestamp for the input epochTime object in the epoch
+    // used by the processor core (i.e., used by gmtime).
+    time_t t = epochTime::getTimestamp(in_time, TimeUtils::_core_tz,
+                                       TimeUtils::_core_epoch);
 
     // create a temporary time struct
     // tm is a struct for time parts, defined in time.h
@@ -237,10 +227,10 @@ void TimeUtils::formatDateTime(char* buffer, const char* fmt,
 void TimeUtils::formatDateTime(char* buffer, const char* fmt,
                                epochTime in_time) {
     _ensureInitialized();
-    // Use the conversion function to get a temporary variable for the epoch
-    // time in the epoch used by the processor core (i.e., used by gmtime).
-    time_t t = epochTime::convertOffsetAndEpoch(in_time, TimeUtils::_core_tz,
-                                                TimeUtils::_core_epoch);
+    // Get a single-value timestamp for the input epochTime object in the epoch
+    // used by the processor core (i.e., used by gmtime).
+    time_t t = epochTime::getTimestamp(in_time, TimeUtils::_core_tz,
+                                       TimeUtils::_core_epoch);
 
     // create a temporary time struct
     // tm is a struct for time parts, defined in time.h
@@ -361,8 +351,9 @@ int32_t TimeUtils::getProcessorTimeZone() {
     // This function is protected to ensure the processor epoch has been
     // initialized before this function is called.
     epochTime timeEpoch(timeTimeT, 0, TimeUtils::_core_epoch);
-    // convert to Y2K epoch
-    time_t timeY2K = epochTime::convertEpoch(timeEpoch, epochStart::y2k_epoch);
+    // get a timestamp in the Y2K epoch
+    time_t timeY2K = epochTime::getTimestamp(timeEpoch, 0,
+                                             epochStart::y2k_epoch);
     // Since we started with Jan 1, 2000, the offset from the input time and 0
     // in the Y2K epoch can only be caused by timezone shifts within the mktime
     // function.
