@@ -14,4 +14,6 @@ Dealing with time is **hard**!
 This library only supports the bare minimum necessary to work with logger clocks and convert between different epoch types.
 It does not support full time zones (only static offsets from UTC), daylight savings time, or many other complications of time.
 
+Parts of this library's functionality exits in **many** Arduino libraries supporting clocks, but I found none that had complete enough or well enough abstracted functionality to be portable, so I created this one.
+
 If you thought handling time was simple, read this: https://gist.github.com/timvisee/fcda9bbdff88d45cc9061606b4b923ca
