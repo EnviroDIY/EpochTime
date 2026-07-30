@@ -285,6 +285,9 @@ class TimeUtils {
      * @param epochSeconds The number of seconds since the start of the given
      * epoch in the given offset from UTC.
      * @param epoch The epoch of the input epoch time.
+     *
+     * @warning This function does NOT verify that the buffer is large enough to
+     * hold the formatted string.  Make sure your buffer is large enough!
      */
     static void formatDateTime(char* buffer, const char* fmt,
                                time_t epochSeconds, epochStart epoch);
@@ -319,6 +322,9 @@ class TimeUtils {
      * the buffer is big enough to hold all of the characters!
      * @param fmt The strftime format string.
      * @param in_time An epochTime object
+     *
+     * @warning This function does NOT verify that the buffer is large enough to
+     * hold the formatted string.  Make sure your buffer is large enough!
      */
     static void formatDateTime(char* buffer, const char* fmt,
                                epochTime in_time);

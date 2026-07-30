@@ -93,10 +93,12 @@ void TimeUtils::formatDateTime(char* buffer, const char* fmt,
     struct tm* tmp = gmtime(&t);
 
     // use strftime (from time.h) to format the time
-    strftime(buffer, 20, fmt, tmp);
+    strftime(buffer, 39, fmt, tmp);
 }
 String TimeUtils::formatDateTime(const char* fmt, epochTime in_time) {
-    char buffer[64];  // Adjust size as needed
+    // 38+1 for the longest common English format:
+    // Wednesday, September 30, 2026 23:59:59
+    char buffer[39];
     formatDateTime(buffer, fmt, in_time);
     return String(buffer);
 }
