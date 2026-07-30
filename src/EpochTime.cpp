@@ -130,7 +130,7 @@ String TimeUtils::printEpochStart(epochStart epoch) {
 }
 
 bool TimeUtils::isTimeSane(time_t ts, int8_t utcOffset, epochStart epoch) {
-    return isTimeSane(epochTime(ts, 0, epoch));
+    return isTimeSane(epochTime(ts, utcOffset, epoch));
 }
 bool TimeUtils::isTimeSane(epochTime in_time) {
     _ensureInitialized();
