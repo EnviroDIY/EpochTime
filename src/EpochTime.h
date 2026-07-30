@@ -144,6 +144,8 @@ enum class epochStart : time_t {
  */
 class epochTime {
  public:
+    friend class TimeUtils;
+
     /**
      * @brief Constructor, requires the timestamp and epoch start as input.
      *
@@ -154,11 +156,8 @@ class epochTime {
      * @param utcOffset The offset from UTC in seconds for the timestamp;
      * optional, defaults to 0.
      */
-    epochTime(time_t timestamp, epochStart epoch = epochStart::unix_epoch,
-              int32_t utcOffset = 0)
-        : _utcOffset(utcOffset) {
-        _unixTimestamp = convertEpoch(timestamp, epoch, epochStart::unix_epoch);
-    }
+    epochTime(time_t timestamp, int32_t utcOffset = 0,
+              epochStart epoch = epochStart::unix_epoch);
 
     /**
      * @brief Deleted bool conversion operator
@@ -179,7 +178,7 @@ class epochTime {
      * @return True if the objects represent the same time
      */
     bool operator==(epochTime a) const {
-        return _unixTimestamp - _utcOffset == a._unixTimestamp - a._utcOffset;
+        return _unixUTCTimestamp == a._unixUTCTimestamp;
     }
 
     /**
@@ -189,7 +188,7 @@ class epochTime {
      * @return True if the objects represent different times
      */
     bool operator!=(epochTime a) const {
-        return _unixTimestamp - _utcOffset != a._unixTimestamp - a._utcOffset;
+        return _unixUTCTimestamp != a._unixUTCTimestamp;
     }
 
     /**
@@ -224,17 +223,17 @@ class epochTime {
      *
      * @param in_timestamp The input timestamp in seconds since the start of
      * the input epoch.
-     * @param in_epoch The epoch of the input timestamp.
      * @param in_utcOffset The UTC offset of the input timestamp, in seconds.
-     * @param out_epoch The desired epoch for the output.
+     * @param in_epoch The epoch of the input timestamp.
      * @param out_utcOffset The desired UTC offset for the output, in seconds.
+     * @param out_epoch The desired epoch for the output.
      * @return The timestamp in seconds since the start of the output epoch.
      */
-    static time_t convertEpochAndTZOffset(time_t     in_timestamp,
-                                          epochStart in_epoch,
-                                          int32_t    in_utcOffset,
-                                          epochStart out_epoch,
-                                          int32_t    out_utcOffset);
+    static time_t convertOffsetAndEpoch(time_t     in_timestamp,
+                                        int32_t    in_utcOffset,
+                                        epochStart in_epoch,
+                                        int32_t    out_utcOffset,
+                                        epochStart out_epoch);
 
     /**
      * @brief Convert an epochTime object to a timestamp in a different epoch
@@ -261,13 +260,13 @@ class epochTime {
      * with different UTC offsets.
      *
      * @param in_time An epochTime object.
+     * @param out_utcOffset The desired UTC offset for the output, in seconds.
      * @param out_epoch The desired epoch for the output.
-     * @param out_utcOffset The desired UTC offset for the output.
      * @return The timestamp in seconds since the start of the output epoch.
      */
-    static time_t convertEpochAndTZOffset(epochTime  in_time,
-                                          epochStart out_epoch,
-                                          int32_t    out_utcOffset);
+    static time_t convertOffsetAndEpoch(epochTime  in_time,
+                                        int32_t    out_utcOffset,
+                                        epochStart out_epoch);
 
     /**
      * @brief Convert Unix time to GPS time.
@@ -289,13 +288,7 @@ class epochTime {
     /**
      * @brief Internal reference to the timestamp IN UNIX EPOCH
      */
-    time_t _unixTimestamp;
-    /**
-     * @brief Internal reference to the offset from UTC in seconds for the
-     * timestamp
-     * @note This is a **signed** 32-bit integer
-     */
-    int32_t _utcOffset;
+    time_t _unixUTCTimestamp;
 
     /**
      * @brief Array of leap seconds as of February 24, 2025
@@ -351,30 +344,38 @@ class TimeUtils {
      *
      * @param epochSeconds The number of seconds since the start of the given
      * epoch.
-     * @param epochSecondsUTCOffset The offset of the input epoch time from
-     * UTC in hours.
+     * @param utcOffsetHours The offset from UTC in **hours** for the printed
+     * time.
      * @param epoch The epoch of the input epoch time.
      * @return An ISO8601 formatted String.
+     *
+     * @warning This function does **not** change the timezone of the input
+     * epoch time. It assumes that the input timestamp value is already in the
+     * correct timezone. The utcOffsetHours parameter is only used for
+     * formatting the output string.
      */
-    static String formatISO8601(time_t epochSeconds,
-                                int8_t epochSecondsUTCOffset, epochStart epoch);
+    static String formatISO8601(time_t epochSeconds, int8_t utcOffsetHours,
+                                epochStart epoch);
     /**
      * @brief Convert an epochTime object into a ISO8601 formatted string.
      *
      * @param in_time An epochTime object
-     * @param epochSecondsUTCOffset The offset of the input epoch time from
-     * UTC in hours.
+     * @param utcOffsetHours The offset from UTC in **hours** for the printed
+     * time.
      * @return An ISO8601 formatted String.
+     *
+     * @remark This function assumes that the input epochTime object was created
+     * with the correct UTC offset. It **will** convert the time to the given
+     * utcOffsetHours for formatting the output string.
      */
-    static String formatISO8601(epochTime in_time,
-                                int8_t    epochSecondsUTCOffset);
+    static String formatISO8601(epochTime in_time, int8_t utcOffsetHours);
 
     /**
      * @brief Convert an epoch time into a character string based on the input
      * strftime format string and put it into the given buffer.
      *
-     * @note This function DOES NOT SUPPORT TIMEZONES. Do not use the %z or %Z
-     * inputs!
+     * @caution This function DOES NOT SUPPORT TIMEZONES. Do not use the %z or
+     * %Z inputs!
      *
      * @see https://en.cppreference.com/w/cpp/chrono/c/strftime for possible
      * formatting strings.
@@ -405,6 +406,21 @@ class TimeUtils {
      */
     static void formatDateTime(char* buffer, const char* fmt,
                                epochTime in_time);
+    /**
+     * @brief Convert an epoch time into a String object based on the input
+     * strftime format string and return it as a String object.
+     *
+     * @note This function DOES NOT SUPPORT TIMEZONES. Do not use the %z or %Z
+     * inputs!
+     *
+     * @see https://en.cppreference.com/w/cpp/chrono/c/strftime for possible
+     * formatting strings.
+     *
+     * @param fmt The strftime format string.
+     * @param in_time An epochTime object
+     * @return A String object containing the formatted date and time.
+     */
+    static String formatDateTime(const char* fmt, epochTime in_time);
 
     /**
      * @brief Gets a string name for the epoch
@@ -443,10 +459,9 @@ class TimeUtils {
      * #LATEST_SANE_UNIX_TIMESTAMP.
      *
      * @param in_time An epochTime object
-     * @param utcOffset The offset of the epoch time from UTC in hours.
      * @return True if the given time passes sanity range checking.
      */
-    static bool isTimeSane(epochTime in_time, int8_t utcOffset);
+    static bool isTimeSane(epochTime in_time);
 
     /**
      * @brief Initialize the core time configuration.
