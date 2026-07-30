@@ -28,7 +28,8 @@ void setup() {
 
     Serial.println("epochTime and TimeUtils Demo");
     Serial.println("----------------------------");
-    Serial.println("Input Timestamp: " + String(myTimestamp));
+    Serial.println("Input Timestamp: " +
+                   String(static_cast<uint32_t>(myTimestamp)));
     Serial.println("Input Offset from UTC in Seconds: " + String(myOffset));
     Serial.println("Input Epoch: " + TimeUtils::printEpochName(myEpoch) +
                    " (start: " + TimeUtils::printEpochStart(myEpoch) + ")");
@@ -46,18 +47,18 @@ void setup() {
     // Convert to GMT-5 (Eastern Standard Time) without changing the epoch
     time_t tsEST = TimeUtils::convertTZOffset(myTimestamp, myOffset, -5 * 3600);
     Serial.print("Converted Timestamp (GMT-5): ");
-    Serial.println(tsEST);
+    Serial.println(static_cast<uint32_t>(tsEST));
     // Convert to Y2K epoch without changing the timezone
     time_t tsY2K = TimeUtils::convertEpoch(myTimestamp, myEpoch,
                                            epochStart::y2k_epoch);
     Serial.print("Converted Timestamp (Y2K): ");
-    Serial.println(tsY2K);
+    Serial.println(static_cast<uint32_t>(tsY2K));
     // Change both the timezone and epoch to GMT-5 (Eastern Standard Time) in
     // the Y2K epoch
     time_t ts_EST_Y2K = TimeUtils::convertOffsetAndEpoch(
         myTimestamp, myOffset, myEpoch, -5 * 3600, epochStart::y2k_epoch);
     Serial.print("Converted Timestamp (GMT-5, Y2K): ");
-    Serial.println(ts_EST_Y2K);
+    Serial.println(static_cast<uint32_t>(ts_EST_Y2K));
 
     // Create an epochTime object
     epochTime myEpochTime(myTimestamp, myOffset, myEpoch);
@@ -66,14 +67,14 @@ void setup() {
                                                   epochStart::y2k_epoch);
     Serial.print(
         "Converted Timestamp (GMT-5, Y2K), from EpochTime static method: ");
-    Serial.println(ts_EST_Y2K_2);
+    Serial.println(static_cast<uint32_t>(ts_EST_Y2K_2));
     // Another way to call the same function, using the epochTime object's
     // method
     time_t ts_EST_Y2K_3 = myEpochTime.getTimestamp(-5 * 3600,
                                                    epochStart::y2k_epoch);
     Serial.print(
         "Converted Timestamp (GMT-5, Y2K), from EpochTime object method: ");
-    Serial.println(ts_EST_Y2K_3);
+    Serial.println(static_cast<uint32_t>(ts_EST_Y2K_3));
 
     // check if the timestamp is equal the converted value
     Serial.println("Checking if the converted timestamp is equal to the "
