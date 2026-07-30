@@ -191,66 +191,6 @@ class epochTime {
         return _unixUTCTimestamp != a._unixUTCTimestamp;
     }
 
-    /**
-     * @brief Convert a timestamp from one epoch to another within the same UTC
-     * offset.
-     *
-     * @param in_timestamp The input timestamp in seconds since the start of
-     * the input epoch.
-     * @param in_epoch The epoch of the input timestamp.
-     * @param out_epoch The desired epoch for the output.
-     * @return The timestamp in seconds since the start of the output epoch.
-     */
-    static time_t convertEpoch(time_t in_timestamp, epochStart in_epoch,
-                               epochStart out_epoch);
-
-    /**
-     * @brief Convert a timestamp from one timezone to another within the same
-     * epoch.
-     *
-     * @param in_timestamp The input timestamp in seconds since the start of
-     * the input epoch.
-     * @param in_utcOffset The UTC offset of the input timestamp, in seconds.
-     * @param out_utcOffset The desired UTC offset for the output, in seconds.
-     * @return The timestamp in seconds since the start of the output epoch.
-     */
-    static time_t convertTZOffset(time_t in_timestamp, int32_t in_utcOffset,
-                                  int32_t out_utcOffset);
-
-    /**
-     * @brief Convert a timestamp from one epoch to another with different UTC
-     * offsets.
-     *
-     * @param in_timestamp The input timestamp in seconds since the start of
-     * the input epoch.
-     * @param in_utcOffset The UTC offset of the input timestamp, in seconds.
-     * @param in_epoch The epoch of the input timestamp.
-     * @param out_utcOffset The desired UTC offset for the output, in seconds.
-     * @param out_epoch The desired epoch for the output.
-     * @return The timestamp in seconds since the start of the output epoch.
-     */
-    static time_t convertOffsetAndEpoch(time_t     in_timestamp,
-                                        int32_t    in_utcOffset,
-                                        epochStart in_epoch,
-                                        int32_t    out_utcOffset,
-                                        epochStart out_epoch);
-
-    /**
-     * @brief Get a single value timestamp from an epochTime object in a
-     * specific epoch and timezone.
-     *
-     * @param in_time An epochTime object.
-     * @param out_utcOffset The desired UTC offset for the output, in seconds,
-     * optional (defaults to 0).
-     * @param out_epoch The desired epoch for the output, optional (defaults to
-     * Unix epoch).
-     * @return The timestamp in seconds since the start of the output epoch at
-     * the output offset from UTC.
-     * @note The out_utcOffset and out_epoch parameters are optional and default
-     * to 0 and Unix epoch, respectively.
-     */
-    static time_t getTimestamp(epochTime in_time, int32_t out_utcOffset = 0,
-                               epochStart out_epoch = epochStart::unix_epoch);
 
     /**
      * @brief Get a single value timestamp from an epochTime object in a
@@ -273,47 +213,6 @@ class epochTime {
      * @brief Internal reference to the timestamp IN UNIX EPOCH
      */
     time_t _unixUTCTimestamp;
-
-    /**
-     * @brief Array of leap seconds as of February 24, 2025
-     */
-    static const uint32_t leapSeconds[NUMBER_LEAP_SECONDS];
-
-    /**
-     * @brief Convert Unix time to GPS time.
-     *
-     * @param unixTime A timestamp in the Unix epoch.
-     * @return The timestamp in the GPS epoch.
-     */
-    static time_t unix2gps(time_t unixTime);
-
-    /**
-     * @brief Convert GPS time to Unix time.
-     *
-     * @param gpsTime A timestamp in the GPS epoch.
-     * @return The timestamp in the Unix epoch.
-     */
-    static time_t gps2unix(time_t gpsTime);
-
-    /**
-     * @brief Test to see if a GPS second is a leap second
-     *
-     * @param gpsTime A timestamp in the GPS epoch
-     * @return True if the time is a leap second
-     */
-    static bool isLeap(uint32_t gpsTime);
-
-    /**
-     * @brief Count number of leap seconds that have passed between the start of
-     * the GPS epoch and the given time
-     *
-     * @param gpsTime A timestamp in the GPS epoch
-     * @param unix2gps True if the input time is in Unix epoch, false if it is
-     * GPS epoch
-     * @return The number of leap seconds that have passed between the start of
-     * the GPS epoch and the given time
-     */
-    static int8_t countLeaps(uint32_t gpsTime, bool unix2gps);
 };
 
 
@@ -481,6 +380,67 @@ class TimeUtils {
     static bool isTimeSane(epochTime in_time);
 
     /**
+     * @brief Convert a timestamp from one epoch to another within the same UTC
+     * offset.
+     *
+     * @param in_timestamp The input timestamp in seconds since the start of
+     * the input epoch.
+     * @param in_epoch The epoch of the input timestamp.
+     * @param out_epoch The desired epoch for the output.
+     * @return The timestamp in seconds since the start of the output epoch.
+     */
+    static time_t convertEpoch(time_t in_timestamp, epochStart in_epoch,
+                               epochStart out_epoch);
+
+    /**
+     * @brief Convert a timestamp from one timezone to another within the same
+     * epoch.
+     *
+     * @param in_timestamp The input timestamp in seconds since the start of
+     * the input epoch.
+     * @param in_utcOffset The UTC offset of the input timestamp, in seconds.
+     * @param out_utcOffset The desired UTC offset for the output, in seconds.
+     * @return The timestamp in seconds since the start of the output epoch.
+     */
+    static time_t convertTZOffset(time_t in_timestamp, int32_t in_utcOffset,
+                                  int32_t out_utcOffset);
+
+    /**
+     * @brief Convert a timestamp from one epoch to another with different UTC
+     * offsets.
+     *
+     * @param in_timestamp The input timestamp in seconds since the start of
+     * the input epoch.
+     * @param in_utcOffset The UTC offset of the input timestamp, in seconds.
+     * @param in_epoch The epoch of the input timestamp.
+     * @param out_utcOffset The desired UTC offset for the output, in seconds.
+     * @param out_epoch The desired epoch for the output.
+     * @return The timestamp in seconds since the start of the output epoch.
+     */
+    static time_t convertOffsetAndEpoch(time_t     in_timestamp,
+                                        int32_t    in_utcOffset,
+                                        epochStart in_epoch,
+                                        int32_t    out_utcOffset,
+                                        epochStart out_epoch);
+
+    /**
+     * @brief Get a single value timestamp from an epochTime object in a
+     * specific epoch and timezone.
+     *
+     * @param in_time An epochTime object.
+     * @param out_utcOffset The desired UTC offset for the output, in seconds,
+     * optional (defaults to 0).
+     * @param out_epoch The desired epoch for the output, optional (defaults to
+     * Unix epoch).
+     * @return The timestamp in seconds since the start of the output epoch at
+     * the output offset from UTC.
+     * @note The out_utcOffset and out_epoch parameters are optional and default
+     * to 0 and Unix epoch, respectively.
+     */
+    static time_t getTimestamp(epochTime in_time, int32_t out_utcOffset = 0,
+                               epochStart out_epoch = epochStart::unix_epoch);
+
+    /**
      * @brief Initialize the core time configuration.
      *
      * This function is optional. The core time configuration is automatically
@@ -570,6 +530,48 @@ class TimeUtils {
      * @brief Flag to track whether initialization has been performed.
      */
     static bool _initialized;
+
+ private:
+    /**
+     * @brief Array of leap seconds as of February 24, 2025
+     */
+    static const uint32_t leapSeconds[NUMBER_LEAP_SECONDS];
+
+    /**
+     * @brief Test to see if a GPS second is a leap second
+     *
+     * @param gpsTime A timestamp in the GPS epoch
+     * @return True if the time is a leap second
+     */
+    static bool isLeap(uint32_t gpsTime);
+
+    /**
+     * @brief Count number of leap seconds that have passed between the start of
+     * the GPS epoch and the given time
+     *
+     * @param gpsTime A timestamp in the GPS epoch
+     * @param unix2gps True if the input time is in Unix epoch, false if it is
+     * GPS epoch
+     * @return The number of leap seconds that have passed between the start of
+     * the GPS epoch and the given time
+     */
+    static int8_t countLeaps(uint32_t gpsTime, bool unix2gps);
+
+    /**
+     * @brief Convert Unix time to GPS time.
+     *
+     * @param unixTime A timestamp in the Unix epoch.
+     * @return The timestamp in the GPS epoch.
+     */
+    static time_t unix2gps(time_t unixTime);
+
+    /**
+     * @brief Convert GPS time to Unix time.
+     *
+     * @param gpsTime A timestamp in the GPS epoch.
+     * @return The timestamp in the Unix epoch.
+     */
+    static time_t gps2unix(time_t gpsTime);
 };
 
 #endif

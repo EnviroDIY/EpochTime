@@ -9,170 +9,8 @@
  */
 #include "EpochTime.h"
 
-epochTime::epochTime(time_t timestamp, int32_t utcOffset, epochStart epoch) {
-    _unixUTCTimestamp = convertOffsetAndEpoch(timestamp, utcOffset, epoch, 0,
-                                              epochStart::unix_epoch);
-}
-
-time_t epochTime::convertEpoch(time_t in_timestamp, epochStart in_epoch,
-                               epochStart out_epoch) {
-    switch (in_epoch) {
-        case epochStart::unix_epoch: {
-            switch (out_epoch) {
-                case epochStart::y2k_epoch: {
-                    return in_timestamp - EPOCH_UNIX_TO_Y2K;
-                }
-                case epochStart::gps_epoch: {
-                    return epochTime::unix2gps(in_timestamp);
-                }
-                case epochStart::nist_epoch: {
-                    return in_timestamp + EPOCH_NIST_TO_UNIX;
-                }
-                case epochStart::unix_epoch:
-                default: {
-                    return in_timestamp;
-                }
-            }
-        }
-        case epochStart::y2k_epoch: {
-            switch (out_epoch) {
-                case epochStart::unix_epoch: {
-                    return in_timestamp + EPOCH_UNIX_TO_Y2K;
-                }
-                case epochStart::gps_epoch: {
-                    return epochTime::unix2gps(in_timestamp +
-                                               EPOCH_UNIX_TO_Y2K);
-                }
-                case epochStart::nist_epoch: {
-                    return in_timestamp + EPOCH_NIST_TO_UNIX +
-                        EPOCH_UNIX_TO_Y2K;
-                }
-                case epochStart::y2k_epoch:
-                default: {
-                    return in_timestamp;
-                }
-            }
-        }
-        case epochStart::gps_epoch: {
-            switch (out_epoch) {
-                case epochStart::unix_epoch: {
-                    return epochTime::gps2unix(in_timestamp);
-                }
-                case epochStart::y2k_epoch: {
-                    return epochTime::gps2unix(in_timestamp) -
-                        EPOCH_UNIX_TO_Y2K;
-                }
-                case epochStart::nist_epoch: {
-                    return epochTime::gps2unix(in_timestamp) +
-                        EPOCH_NIST_TO_UNIX;
-                }
-                case epochStart::gps_epoch:
-                default: {
-                    return in_timestamp;
-                }
-            }
-        }
-        case epochStart::nist_epoch: {
-            switch (out_epoch) {
-                case epochStart::unix_epoch: {
-                    return in_timestamp - EPOCH_NIST_TO_UNIX;
-                }
-                case epochStart::y2k_epoch: {
-                    return in_timestamp - EPOCH_NIST_TO_UNIX -
-                        EPOCH_UNIX_TO_Y2K;
-                }
-                case epochStart::gps_epoch: {
-                    return epochTime::unix2gps(in_timestamp -
-                                               EPOCH_NIST_TO_UNIX);
-                }
-                case epochStart::nist_epoch:
-                default: {
-                    return in_timestamp;
-                }
-            }
-        }
-        default: {
-            return in_timestamp;
-        }
-    }
-}
-
-time_t epochTime::convertTZOffset(time_t in_timestamp, int32_t in_utcOffset,
-                                  int32_t out_utcOffset) {
-    return in_timestamp + (out_utcOffset - in_utcOffset);
-}
-
-time_t epochTime::convertOffsetAndEpoch(time_t     in_timestamp,
-                                        int32_t    in_utcOffset,
-                                        epochStart in_epoch,
-                                        int32_t    out_utcOffset,
-                                        epochStart out_epoch) {
-    return convertTZOffset(convertEpoch(in_timestamp, in_epoch, out_epoch),
-                           in_utcOffset, out_utcOffset);
-}
-
-time_t epochTime::getTimestamp(epochTime in_time, int32_t out_utcOffset,
-                               epochStart out_epoch) {
-    return convertOffsetAndEpoch(in_time._unixUTCTimestamp, 0,
-                                 epochStart::unix_epoch, out_utcOffset,
-                                 out_epoch);
-}
-
-time_t epochTime::getTimestamp(int32_t out_utcOffset, epochStart out_epoch) {
-    return getTimestamp(_unixUTCTimestamp, out_utcOffset, out_epoch);
-}
-
-
-// Convert Unix Time to GPS Time
-time_t epochTime::unix2gps(time_t unixTime) {
-    // Add offset in seconds
-    bool isLeap;
-    if (fmod(unixTime, 1) != 0) {
-        unixTime = unixTime - 0.5;
-        isLeap   = 1;
-    } else {
-        isLeap = 0;
-    }
-    time_t gpsTime = unixTime - EPOCH_UNIX_TO_GPS;
-    int8_t nLeaps  = countLeaps(gpsTime, true);
-    gpsTime        = gpsTime + nLeaps + isLeap;
-    return gpsTime;
-}
-
-// Convert GPS Time to Unix Time
-time_t epochTime::gps2unix(time_t gpsTime) {
-    // Add offset in seconds
-    time_t unixTime = gpsTime + EPOCH_UNIX_TO_GPS;
-    int8_t nLeaps   = countLeaps(gpsTime, false);
-    unixTime        = unixTime - nLeaps;
-    if (isLeap(gpsTime)) { unixTime = unixTime + 0.5; }
-    return unixTime;
-}
-
-// Test to see if a GPS second is a leap second
-bool epochTime::isLeap(uint32_t gpsTime) {
-    bool isLeap = false;
-    for (int8_t i = 0; i < NUMBER_LEAP_SECONDS; i++) {
-        if (gpsTime == leapSeconds[i]) { isLeap = true; }
-    }
-    return isLeap;
-}
-
-// Count number of leap seconds that have passed
-int8_t epochTime::countLeaps(uint32_t gpsTime, bool unix2gps) {
-    int8_t nLeaps = 0;  // number of leap seconds prior to gpsTime
-    for (int8_t i = 0; i < NUMBER_LEAP_SECONDS; i++) {
-        if (unix2gps) {
-            if (gpsTime >= leapSeconds[i] - i) { nLeaps++; }
-        } else {
-            if (gpsTime >= leapSeconds[i]) { nLeaps++; }
-        }
-    }
-    return nLeaps;
-}
-
 // Initialize the array for the leap seconds - taken from the defines
-const uint32_t epochTime::leapSeconds[NUMBER_LEAP_SECONDS] = LEAP_SECONDS;
+const uint32_t TimeUtils::leapSeconds[NUMBER_LEAP_SECONDS] = LEAP_SECONDS;
 
 // Initialize the processor epoch
 epochStart TimeUtils::_core_epoch = epochStart::y2k_epoch;
@@ -180,6 +18,16 @@ epochStart TimeUtils::_core_epoch = epochStart::y2k_epoch;
 int32_t TimeUtils::_core_tz = 0;
 // Initialize the flag tracking initialization state
 bool TimeUtils::_initialized = false;
+
+
+epochTime::epochTime(time_t timestamp, int32_t utcOffset, epochStart epoch) {
+    _unixUTCTimestamp = TimeUtils::convertOffsetAndEpoch(
+        timestamp, utcOffset, epoch, 0, epochStart::unix_epoch);
+}
+
+time_t epochTime::getTimestamp(int32_t out_utcOffset, epochStart out_epoch) {
+    return TimeUtils::getTimestamp(*this, out_utcOffset, out_epoch);
+}
 
 // This converts an epoch time (seconds since a fixed epoch start) into a
 // ISO8601 formatted string. Code modified from parts of the SparkFun RV-8803
@@ -193,7 +41,7 @@ String TimeUtils::formatISO8601(epochTime in_time, int8_t utcOffsetHours) {
     _ensureInitialized();
     // Get a single-value timestamp for the input epochTime object in the epoch
     // used by the processor core (i.e., used by gmtime).
-    time_t t = epochTime::getTimestamp(in_time, TimeUtils::_core_tz,
+    time_t t = TimeUtils::getTimestamp(in_time, TimeUtils::_core_tz,
                                        TimeUtils::_core_epoch);
 
     // create a temporary time struct
@@ -237,7 +85,7 @@ void TimeUtils::formatDateTime(char* buffer, const char* fmt,
     _ensureInitialized();
     // Get a single-value timestamp for the input epochTime object in the epoch
     // used by the processor core (i.e., used by gmtime).
-    time_t t = epochTime::getTimestamp(in_time, TimeUtils::_core_tz,
+    time_t t = TimeUtils::getTimestamp(in_time, TimeUtils::_core_tz,
                                        TimeUtils::_core_epoch);
 
     // create a temporary time struct
@@ -284,6 +132,110 @@ bool TimeUtils::isTimeSane(epochTime in_time) {
     } else {
         return true;
     }
+}
+
+time_t TimeUtils::convertEpoch(time_t in_timestamp, epochStart in_epoch,
+                                epochStart out_epoch) {
+    switch (in_epoch) {
+        case epochStart::unix_epoch: {
+            switch (out_epoch) {
+                case epochStart::y2k_epoch: {
+                    return in_timestamp - EPOCH_UNIX_TO_Y2K;
+                }
+                case epochStart::gps_epoch: {
+                    return TimeUtils::unix2gps(in_timestamp);
+                }
+                case epochStart::nist_epoch: {
+                    return in_timestamp + EPOCH_NIST_TO_UNIX;
+                }
+                case epochStart::unix_epoch:
+                default: {
+                    return in_timestamp;
+                }
+            }
+        }
+        case epochStart::y2k_epoch: {
+            switch (out_epoch) {
+                case epochStart::unix_epoch: {
+                    return in_timestamp + EPOCH_UNIX_TO_Y2K;
+                }
+                case epochStart::gps_epoch: {
+                    return TimeUtils::unix2gps(in_timestamp +
+                                               EPOCH_UNIX_TO_Y2K);
+                }
+                case epochStart::nist_epoch: {
+                    return in_timestamp + EPOCH_NIST_TO_UNIX +
+                        EPOCH_UNIX_TO_Y2K;
+                }
+                case epochStart::y2k_epoch:
+                default: {
+                    return in_timestamp;
+                }
+            }
+        }
+        case epochStart::gps_epoch: {
+            switch (out_epoch) {
+                case epochStart::unix_epoch: {
+                    return TimeUtils::gps2unix(in_timestamp);
+                }
+                case epochStart::y2k_epoch: {
+                    return TimeUtils::gps2unix(in_timestamp) -
+                        EPOCH_UNIX_TO_Y2K;
+                }
+                case epochStart::nist_epoch: {
+                    return TimeUtils::gps2unix(in_timestamp) +
+                        EPOCH_NIST_TO_UNIX;
+                }
+                case epochStart::gps_epoch:
+                default: {
+                    return in_timestamp;
+                }
+            }
+        }
+        case epochStart::nist_epoch: {
+            switch (out_epoch) {
+                case epochStart::unix_epoch: {
+                    return in_timestamp - EPOCH_NIST_TO_UNIX;
+                }
+                case epochStart::y2k_epoch: {
+                    return in_timestamp - EPOCH_NIST_TO_UNIX -
+                        EPOCH_UNIX_TO_Y2K;
+                }
+                case epochStart::gps_epoch: {
+                    return TimeUtils::unix2gps(in_timestamp -
+                                               EPOCH_NIST_TO_UNIX);
+                }
+                case epochStart::nist_epoch:
+                default: {
+                    return in_timestamp;
+                }
+            }
+        }
+        default: {
+            return in_timestamp;
+        }
+    }
+}
+
+time_t TimeUtils::convertTZOffset(time_t in_timestamp, int32_t in_utcOffset,
+                                   int32_t out_utcOffset) {
+    return in_timestamp + (out_utcOffset - in_utcOffset);
+}
+
+time_t TimeUtils::convertOffsetAndEpoch(time_t     in_timestamp,
+                                         int32_t    in_utcOffset,
+                                         epochStart in_epoch,
+                                         int32_t    out_utcOffset,
+                                         epochStart out_epoch) {
+    return convertTZOffset(convertEpoch(in_timestamp, in_epoch, out_epoch),
+                           in_utcOffset, out_utcOffset);
+}
+
+time_t TimeUtils::getTimestamp(epochTime in_time, int32_t out_utcOffset,
+                                epochStart out_epoch) {
+    return convertOffsetAndEpoch(in_time._unixUTCTimestamp, 0,
+                                 epochStart::unix_epoch, out_utcOffset,
+                                 out_epoch);
 }
 
 void TimeUtils::begin() {
@@ -360,7 +312,7 @@ int32_t TimeUtils::getProcessorTimeZone() {
     // initialized before this function is called.
     epochTime timeEpoch(timeTimeT, 0, TimeUtils::_core_epoch);
     // get a timestamp in the Y2K epoch
-    time_t timeY2K = epochTime::getTimestamp(timeEpoch, 0,
+    time_t timeY2K = TimeUtils::getTimestamp(timeEpoch, 0,
                                              epochStart::y2k_epoch);
     // Since we started with Jan 1, 2000, the offset from the input time and 0
     // in the Y2K epoch can only be caused by timezone shifts within the mktime
@@ -397,6 +349,54 @@ int32_t TimeUtils::getProcessorTimeZone() {
     }
     TimeUtils::_core_tz = tz_offset;
     return tz_offset;
+}
+
+// Test to see if a GPS second is a leap second
+bool TimeUtils::isLeap(uint32_t gpsTime) {
+    bool isLeap = false;
+    for (int8_t i = 0; i < NUMBER_LEAP_SECONDS; i++) {
+        if (gpsTime == leapSeconds[i]) { isLeap = true; }
+    }
+    return isLeap;
+}
+
+// Count number of leap seconds that have passed
+int8_t TimeUtils::countLeaps(uint32_t gpsTime, bool unix2gps) {
+    int8_t nLeaps = 0;  // number of leap seconds prior to gpsTime
+    for (int8_t i = 0; i < NUMBER_LEAP_SECONDS; i++) {
+        if (unix2gps) {
+            if (gpsTime >= leapSeconds[i] - i) { nLeaps++; }
+        } else {
+            if (gpsTime >= leapSeconds[i]) { nLeaps++; }
+        }
+    }
+    return nLeaps;
+}
+
+// Convert Unix Time to GPS Time
+time_t TimeUtils::unix2gps(time_t unixTime) {
+    // Add offset in seconds
+    bool isLeap;
+    if (fmod(unixTime, 1) != 0) {
+        unixTime = unixTime - 0.5;
+        isLeap   = 1;
+    } else {
+        isLeap = 0;
+    }
+    time_t gpsTime = unixTime - EPOCH_UNIX_TO_GPS;
+    int8_t nLeaps  = countLeaps(gpsTime, true);
+    gpsTime        = gpsTime + nLeaps + isLeap;
+    return gpsTime;
+}
+
+// Convert GPS Time to Unix Time
+time_t TimeUtils::gps2unix(time_t gpsTime) {
+    // Add offset in seconds
+    time_t unixTime = gpsTime + EPOCH_UNIX_TO_GPS;
+    int8_t nLeaps   = countLeaps(gpsTime, false);
+    unixTime        = unixTime - nLeaps;
+    if (isLeap(gpsTime)) { unixTime = unixTime + 0.5; }
+    return unixTime;
 }
 
 // cSpell:words
