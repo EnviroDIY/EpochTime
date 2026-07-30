@@ -1,0 +1,35 @@
+{
+  "name": "EpochTime",
+  "version": "1.0.0",
+  "description": "An Arduino library for converting between time in parts as used by core gmtime functions and epoch time (Unix time).",
+  "keywords": "time, epoch, unix, gmtime, arduino",
+  "platforms": "*",
+  "frameworks": "arduino",
+  "authors": [
+    {
+      "name": "Sara Damiano",
+      "email": "sdamiano@stroudcenter.org",
+      "url": "https://envirodiy.org/",
+      "maintainer": true
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/EnviroDIY/EpochTime.git"
+  },
+  "export": {
+    "include": [
+      "LICENSE.md",
+      "library.json",
+      "library.properties",
+      "README.md",
+      "src/*",
+      "examples/*"
+    ]
+  },
+  "examples": ["examples/*/*.ino"],
+  "build": {
+    "srcFilter": ["+<*.c>", "+<*.cpp>", "+<*.h>"],
+    "libLDFMode": "deep+"
+  }
+}

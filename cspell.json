@@ -1,0 +1,17 @@
+{
+  "version": "0.2",
+  "ignorePaths": [],
+  "dictionaryDefinitions": [],
+  "dictionaries": [],
+  "words": [
+    "Arduinos",
+    "Damiano",
+    "EnviroDIY",
+    "EpochTime",
+    "Geleskie",
+    "gmtime",
+    "SRGDamia1"
+  ],
+  "ignoreWords": [],
+  "import": []
+}
