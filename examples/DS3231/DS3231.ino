@@ -13,7 +13,7 @@
 // Include the Wire library for I2C communication
 #include <Wire.h>
 // Include the DS3231 RTC library
-#include <Sodaq_DS3231.h>;
+#include <Sodaq_DS3231.h>
 
 // The Arduino setup function, which runs once at startup
 void setup() {
