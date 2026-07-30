@@ -253,6 +253,22 @@ class epochTime {
                                epochStart out_epoch = epochStart::unix_epoch);
 
     /**
+     * @brief Get a single value timestamp from an epochTime object in a
+     * specific epoch and timezone.
+     *
+     * @param out_utcOffset The desired UTC offset for the output, in seconds,
+     * optional (defaults to 0).
+     * @param out_epoch The desired epoch for the output, optional (defaults to
+     * Unix epoch).
+     * @return The timestamp in seconds since the start of the output epoch at
+     * the output offset from UTC.
+     * @note The out_utcOffset and out_epoch parameters are optional and default
+     * to 0 and Unix epoch, respectively.
+     */
+    time_t getTimestamp(int32_t    out_utcOffset = 0,
+                        epochStart out_epoch     = epochStart::unix_epoch);
+
+    /**
      * @brief Convert Unix time to GPS time.
      *
      * @param unixTime A timestamp in the Unix epoch.

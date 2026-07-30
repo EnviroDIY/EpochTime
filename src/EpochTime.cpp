@@ -118,6 +118,10 @@ time_t epochTime::getTimestamp(epochTime in_time, int32_t out_utcOffset,
                                  out_epoch);
 }
 
+time_t epochTime::getTimestamp(int32_t out_utcOffset, epochStart out_epoch) {
+    return getTimestamp(_unixUTCTimestamp, out_utcOffset, out_epoch);
+}
+
 
 // Convert Unix Time to GPS Time
 time_t epochTime::unix2gps(time_t unixTime) {
