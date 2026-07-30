@@ -268,6 +268,17 @@ class epochTime {
     time_t getTimestamp(int32_t    out_utcOffset = 0,
                         epochStart out_epoch     = epochStart::unix_epoch);
 
+ private:
+    /**
+     * @brief Internal reference to the timestamp IN UNIX EPOCH
+     */
+    time_t _unixUTCTimestamp;
+
+    /**
+     * @brief Array of leap seconds as of February 24, 2025
+     */
+    static const uint32_t leapSeconds[NUMBER_LEAP_SECONDS];
+
     /**
      * @brief Convert Unix time to GPS time.
      *
@@ -283,17 +294,6 @@ class epochTime {
      * @return The timestamp in the Unix epoch.
      */
     static time_t gps2unix(time_t gpsTime);
-
- private:
-    /**
-     * @brief Internal reference to the timestamp IN UNIX EPOCH
-     */
-    time_t _unixUTCTimestamp;
-
-    /**
-     * @brief Array of leap seconds as of February 24, 2025
-     */
-    static const uint32_t leapSeconds[NUMBER_LEAP_SECONDS];
 
     /**
      * @brief Test to see if a GPS second is a leap second
