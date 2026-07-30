@@ -10,6 +10,7 @@
     "EpochTime",
     "Geleskie",
     "gmtime",
+    "Sodaq",
     "SRGDamia1"
   ],
   "ignoreWords": [],
