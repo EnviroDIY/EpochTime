@@ -11,6 +11,11 @@
 // Include the main header
 #include <EpochTime.h>
 
+#if (defined(ARDUINO_ARCH_NRF52840) || defined(ARDUINO_NRF52840_FEATHER)) && \
+    !defined(PLATFORMIO)
+#include <Adafruit_TinyUSB.h>  // for Serial
+#endif
+
 // set a value for the time
 // Wednesday, July 1, 2026 at 12:00:00 AM GMT, in the Unix epoch
 time_t     myTimestamp = 1782864000;

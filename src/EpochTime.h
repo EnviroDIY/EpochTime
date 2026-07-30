@@ -90,8 +90,9 @@ static_assert(EARLIEST_SANE_UNIX_TIMESTAMP < LATEST_SANE_UNIX_TIMESTAMP,
 /// @brief The number of seconds in a day
 #define SECONDS_IN_DAY 86400L
 
-#if !defined(etime_t) &&                                   \
-    ((defined(ARDUINO_SAM_DUE) && !defined(PLATFORMIO)) || \
+#if !defined(etime_t) &&                                           \
+    (((defined(ARDUINO_SAM_DUE) || defined(ARDUINO_NANO_ESP32)) && \
+      !defined(PLATFORMIO)) ||                                     \
      defined(ARDUINO_ARCH_ARC32) || defined(ARDUINO_ARCH_PIC32))
 // For some idiotic reason, the SAM and the ARC32 core use a long integer
 // (uint16_t) instead of a long long (uint32_t) for time_t, so we need to use a
