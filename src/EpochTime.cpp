@@ -228,6 +228,10 @@ void TimeUtils::formatDateTime(char* buffer, const char* fmt,
                                time_t epochSeconds, epochStart epoch) {
     formatDateTime(buffer, fmt, epochTime(epochSeconds, 0, epoch));
 }
+String TimeUtils::formatDateTime(const char* fmt, time_t epochSeconds,
+                                 epochStart epoch) {
+    return formatDateTime(fmt, epochTime(epochSeconds, 0, epoch));
+}
 void TimeUtils::formatDateTime(char* buffer, const char* fmt,
                                epochTime in_time) {
     _ensureInitialized();

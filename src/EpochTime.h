@@ -371,8 +371,8 @@ class TimeUtils {
     static String formatISO8601(epochTime in_time, int8_t utcOffsetHours);
 
     /**
-     * @brief Convert an epoch time into a character string based on the input
-     * strftime format string and put it into the given buffer.
+     * @brief Convert a single value timestamp into a character string based on
+     * the input strftime format string and put it into the given buffer.
      *
      * @caution This function DOES NOT SUPPORT TIMEZONES. Do not use the %z or
      * %Z inputs!
@@ -389,6 +389,23 @@ class TimeUtils {
      */
     static void formatDateTime(char* buffer, const char* fmt,
                                time_t epochSeconds, epochStart epoch);
+    /**
+     * @brief Convert a single value timestamp into a String object based on the
+     * input strftime format string and put it into the given buffer.
+     *
+     * @caution This function DOES NOT SUPPORT TIMEZONES. Do not use the %z or
+     * %Z inputs!
+     *
+     * @see https://en.cppreference.com/w/cpp/chrono/c/strftime for possible
+     * formatting strings.
+     *
+     * @param fmt The strftime format string.
+     * @param epochSeconds The number of seconds since the start of the given
+     * epoch in the given offset from UTC.
+     * @param epoch The epoch of the input epoch time.
+     */
+    static String formatDateTime(const char* fmt, time_t epochSeconds,
+                                 epochStart epoch);
     /**
      * @brief Convert an epoch time into a character string based on the input
      * strftime format string and put it into the given buffer.
