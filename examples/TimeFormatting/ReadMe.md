@@ -1,6 +1,6 @@
 # Time Formatting<!--! {#example_time_formatting} -->
 
-This example demonstrates using the time formatting functions to pretty-print times to the serial port.
+This example demonstrates using the time formatting, conversion, and sanity checking functions of the epochTime and TimeUtils classes.
 
 _______
 

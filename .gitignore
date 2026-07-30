@@ -86,6 +86,7 @@ boards/*
 archive/*
 filters/*
 runDoxygen.bat
+docs/output_*.log
 docs/examples/*
 generateKeywords.bat
 pio_common_libdeps.ini

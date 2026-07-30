@@ -4,8 +4,8 @@
  * @license This example is published under the BSD-3 license.
  * @author Sara Geleskie Damiano <sdamiano@stroudcenter.org>
  *
- * @brief This example demonstrates using the time formatting functions to
- * pretty-print times to the serial port.
+ * @brief This example demonstrates using the time formatting, conversion, and
+ * sanity checking functions of the epochTime and TimeUtils classes
  * ========================================================================== */
 
 // Include the main header

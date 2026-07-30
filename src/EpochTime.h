@@ -273,7 +273,7 @@ class TimeUtils {
      * @brief Convert a single value timestamp into a character string based on
      * the input strftime format string and put it into the given buffer.
      *
-     * @caution This function DOES NOT SUPPORT TIMEZONES. Do not use the %z or
+     * @attention This function DOES NOT SUPPORT TIMEZONES. Do not use the %z or
      * %Z inputs!
      *
      * @see https://en.cppreference.com/w/cpp/chrono/c/strftime for possible
@@ -295,7 +295,7 @@ class TimeUtils {
      * @brief Convert a single value timestamp into a String object based on the
      * input strftime format string and put it into the given buffer.
      *
-     * @caution This function DOES NOT SUPPORT TIMEZONES. Do not use the %z or
+     * @attention This function DOES NOT SUPPORT TIMEZONES. Do not use the %z or
      * %Z inputs!
      *
      * @see https://en.cppreference.com/w/cpp/chrono/c/strftime for possible
@@ -305,6 +305,7 @@ class TimeUtils {
      * @param epochSeconds The number of seconds since the start of the given
      * epoch in the given offset from UTC.
      * @param epoch The epoch of the input epoch time.
+     * @return A String object containing the formatted date and time.
      */
     static String formatDateTime(const char* fmt, time_t epochSeconds,
                                  epochStart epoch);
@@ -345,15 +346,14 @@ class TimeUtils {
     static String formatDateTime(const char* fmt, epochTime in_time);
 
     /**
-     * @brief Gets a string name for the epoch
-     *
+     * @brief Gets a string name for the epoch     *
      * @param epoch The epoch to get the name of
      * @return The name for the epoch
      */
     static String printEpochName(epochStart epoch);
     /**
      * @brief Gets a string for the start date of the epoch
-     *
+     * @param epoch The epoch to get the name of
      * @return The starting date, in ISO8601
      */
     static String printEpochStart(epochStart epoch);
