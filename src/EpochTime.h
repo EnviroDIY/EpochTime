@@ -87,8 +87,10 @@ static_assert(EARLIEST_SANE_UNIX_TIMESTAMP < LATEST_SANE_UNIX_TIMESTAMP,
      599184012, 820108813, 914803214, 1025136015, 1119744016, 1167264017}
 #endif
 
+#ifndef SECONDS_IN_DAY
 /// @brief The number of seconds in a day
 #define SECONDS_IN_DAY 86400L
+#endif
 
 #if !defined(etime_t) &&                                           \
     (((defined(ARDUINO_SAM_DUE) || defined(ARDUINO_NANO_ESP32)) && \
