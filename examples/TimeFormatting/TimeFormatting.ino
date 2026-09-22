@@ -105,7 +105,7 @@ void setup() {
     Serial.print("} ");
     Serial.print(compiledT == myTimestamp ? "correctly" : "INCORRECTLY");
     Serial.print(" compiled to");
-    Serial.println(compiledT);
+    Serial.println(static_cast<uint32_t>(compiledT));
 
 #if defined(__TM_GMTOFF) || defined(__TM_ZONE)
     // Assemble two different tm's into time_t objects
@@ -136,7 +136,7 @@ void setup() {
     Serial.print("} ");
     Serial.print(compiledT2 == myTimestamp ? "correctly" : "INCORRECTLY");
     Serial.print(" compiled to");
-    Serial.println(compiledT2);
+    Serial.println(static_cast<uint32_t>(compiledT2));
 #endif
 
     Serial.print("The structs convertedTM and myTM1 are ");
