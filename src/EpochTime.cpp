@@ -269,7 +269,7 @@ time_t TimeUtils::tmToUTCTimeT(tm timeParts) {
     etime_t t = static_cast<etime_t>(mktime(&timeParts));
     // Convert the etime_t (time_t) from the processor's timezone into UTC
     t = TimeUtils::convertOffsetAndEpoch(t, TimeUtils::getCoreTimeZone(),
-                                         epochStart::nist_epoch, 0,
+                                         TimeUtils::getCoreEpochStart(), 0,
                                          TimeUtils::getCoreEpochStart());
     return static_cast<time_t>(t);
 }
