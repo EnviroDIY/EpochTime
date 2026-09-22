@@ -468,6 +468,22 @@ class TimeUtils {
      * processor's time_t representation without allowing mktime()'s local-time
      * offset to change the represented instant.
      *
+     * The tm structure contains the following members, all of type int (or in
+     * some cases, int8_t and int6_t):
+     * - tm_sec: Seconds after the minute, typically 0–59 (can extend to 60 for
+     * leap seconds)
+     * - tm_min: Minutes after the hour, 0–59
+     * - tm_hour: Hours since midnight, 0–23
+     * - tm_mday: Day of the month, 1–31
+     * - tm_mon: Months since January, 0–11
+     * - tm_year: Years since 1900 [NIST EPOCH!]
+     * - tm_wday: Days since Sunday, 0–6
+     * - tm_yday: Days since January 1, 0–365
+     * - tm_isdst: Daylight Saving Time flag; positive if DST is in effect, 0 if
+     * not, negative if unknown
+     * - __TM_GMTOFF: Offset from UTC in seconds [in GNU / BSD Extensions only]
+     * - __TM_ZONE: Time zone abbreviation [in GNU / BSD Extensions only]
+     *
      * @param timeParts The tm structure to be converted to time_t.
      * @return The corresponding time_t value representing the same instant in
      * UTC.
@@ -482,6 +498,9 @@ class TimeUtils {
      * offset: adding the mktime offset here would turn a UTC timestamp into
      * local time. TimeUtils still supplies the processor epoch information so
      * that this remains correct on cores whose time_t epoch is not Unix.
+     *
+     * @note time_t is a number of seconds since the epoch.  The starting epoch
+     * is processor/core dependent.
      *
      * @param t The time_t value to be converted.
      * @param timeParts The tm structure to store the converted calendar time.

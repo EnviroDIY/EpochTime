@@ -256,15 +256,18 @@ time_t TimeUtils::tmToUTCTimeT(tm timeParts) {
     // given in the time parts to that processor local zone.
     etime_t t = static_cast<etime_t>(mktime(&timeParts));
     // Convert the etime_t (time_t) from the processor's timezone into UTC
-    t = TimeUtils::convertTZOffset(t, TimeUtils::getCoreTimeZone(), 0);
+    t = TimeUtils::convertOffsetAndEpoch(t, TimeUtils::getCoreTimeZone(),
+                                         epochStart::nist_epoch, 0,
+                                         TimeUtils::getCoreEpochStart());
     return static_cast<time_t>(t);
 }
 
 void TimeUtils::utcTimeTToTm(time_t t, tm& timeParts) {
     _ensureInitialized();
     // Convert the etime_t (time_t) from UTC to the processor's timezone
-    etime_t coreTime = TimeUtils::convertTZOffset(static_cast<etime_t>(t), 0,
-                                                  TimeUtils::getCoreTimeZone());
+    etime_t coreTime = TimeUtils::convertOffsetAndEpoch(
+        static_cast<etime_t>(t), 0, TimeUtils::getCoreEpochStart(),
+        TimeUtils::getCoreTimeZone(), TimeUtils::getCoreEpochStart());
     // cast back from etime_t to time_t
     time_t gmtimeTime = static_cast<time_t>(coreTime);
     // converts the time stamp pointed to by gmtimeTime into broken-down time,
