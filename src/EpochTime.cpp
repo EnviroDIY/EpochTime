@@ -248,6 +248,18 @@ etime_t TimeUtils::getTimestamp(epochTime in_time, int32_t out_utcOffset,
                                  out_epoch);
 }
 
+time_t TimeUtils::getTimeT(epochTime in_time) {
+    return static_cast<time_t>(getTimestamp(
+        in_time, TimeUtils::getCoreTimeZone(), TimeUtils::getCoreEpochStart()));
+}
+
+time_t TimeUtils::getTimeT(etime_t in_timestamp, int32_t in_utcOffset,
+                           epochStart in_epoch) {
+    return static_cast<time_t>(TimeUtils::convertOffsetAndEpoch(
+        in_timestamp, in_utcOffset, in_epoch, TimeUtils::getCoreTimeZone(),
+        TimeUtils::getCoreEpochStart()));
+}
+
 time_t TimeUtils::tmToUTCTimeT(tm timeParts) {
     _ensureInitialized();
     // convert the time parts from the tm struct into an etime_t

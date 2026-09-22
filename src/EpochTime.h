@@ -462,6 +462,26 @@ class TimeUtils {
     static etime_t getTimestamp(epochTime in_time, int32_t out_utcOffset = 0,
                                 epochStart out_epoch = epochStart::unix_epoch);
 
+    /**
+     * @brief Get the time_t representation of an epochTime object.
+     *
+     * @param in_time An epochTime object.
+     * @return The corresponding time_t value.
+     */
+    static time_t getTimeT(epochTime in_time);
+
+    /**
+     * @brief Get the time_t representation of an epochTime object.
+     *
+     * @param in_timestamp The input timestamp in seconds since the start of
+     * the input epoch.
+     * @param in_utcOffset The UTC offset of the input timestamp, in seconds.
+     * @param in_epoch The epoch of the input timestamp.
+     * @return The corresponding time_t value.
+     */
+    static time_t getTimeT(etime_t in_timestamp, int32_t in_utcOffset = 0,
+                           epochStart in_epoch = epochStart::unix_epoch);
+
 
     /**
      * @brief Convert a tm struct containing a UTC calendar time to the
