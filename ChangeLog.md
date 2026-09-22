@@ -24,9 +24,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Changed
 
-Use ifndef around SECONDS_IN_DAY define
+- Use `#ifndef` around SECONDS_IN_DAY define
+- Updated TimeFormatting example
 
 ### Added
+
+- Added two functions for converting between tm structs and time_t objects: `tmToUTCTimeT(tm timeParts)` and `utcTimeTToTm(time_t t, tm& timeParts)`
+- Added a function to compare two tm structs: `sameTime(const tm& a, const tm& b)`
 
 ### Removed
 

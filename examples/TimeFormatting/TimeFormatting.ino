@@ -46,6 +46,104 @@ void setup() {
     Serial.print("Core timezone: ");
     Serial.println(TimeUtils::getCoreTimeZone());
 
+    // Convert a time_t object and into a tm structure
+    tm convertedTM = {};
+    TimeUtils::utcTimeTToTm(myTimestamp, convertedTM);
+    Serial.print("Timestamp broken into components: ");
+    Serial.print("Year: ");
+    Serial.print(convertedTM.tm_year) + 100;
+    Serial.print(" Month: ");
+    Serial.print(convertedTM.tm_mon) + 1;
+    Serial.print(" Day: ");
+    Serial.println(convertedTM.tm_mday);
+    Serial.print("Day of Year: ");
+    Serial.print(convertedTM.tm_yday);
+    Serial.print(" Day of Week: ");
+    Serial.println(convertedTM.tm_wday) + 1;
+    Serial.print("Hour: ");
+    Serial.print(convertedTM.tm_hour);
+    Serial.print(" Minute: ");
+    Serial.print(convertedTM.tm_min);
+    Serial.print(" Second: ");
+    Serial.println(convertedTM.tm_sec);
+    Serial.print("DST Flag: ");
+    Serial.println(convertedTM.tm_isdst);
+#ifdef __TM_GMTOFF
+    Serial.print("GMT Offset: ");
+    Serial.println(convertedTM.__TM_GMTOFF);
+#endif
+#ifdef __TM_ZONE
+    Serial.print("Time Zone: ");
+    Serial.println(convertedTM.__TM_ZONE);
+#endif
+
+    // Assemble two different tm's into time_t objects
+    tm myTM1      = {};
+    myTM1.tm_sec  = 0;
+    myTM1.tm_min  = 0;
+    myTM1.tm_hour = 0;  // 00:00:00
+    myTM1.tm_mday = 1;
+    myTM1.tm_mon  = 7 - 1;  // July 1
+    myTM1.tm_year = 2026 - 1900;
+    // myTM1.tm_wday;  // ignored!
+    // myTM1.tm_yday;  // ignored!
+    // myTM1.tm_isdst;  // ignored!
+#ifdef __TM_GMTOFF
+    myTM1.__TM_GMTOFF = 0;
+#endif
+#ifdef __TM_ZONE
+    myTM1.__TM_ZONE = "GMT";
+#endif
+    time_t compiledT = TimeUtils::tmToUTCTimeT(myTM1);
+    Serial.print("{0, 0, 0, 1, 6, 126, 0, 0, 0");
+#ifdef __TM_GMTOFF
+    Serial.print(", 0");
+#endif
+#ifdef __TM_ZONE
+    Serial.print(", \"GMT\"");
+#endif
+    Serial.print("} ");
+    Serial.print(compiledT == myTimestamp ? "correctly" : "INCORRECTLY");
+    Serial.print(" compiled to");
+    Serial.println(compiledT);
+
+#if defined(__TM_GMTOFF) || defined(__TM_ZONE)
+    // Assemble two different tm's into time_t objects
+    tm myTM2      = {};
+    myTM2.tm_sec  = 0;
+    myTM2.tm_min  = 0;
+    myTM2.tm_hour = 19;  // 19:00:00
+    myTM2.tm_mday = 30;
+    myTM2.tm_mon  = 6 - 1;  // June 30
+    myTM2.tm_year = 2026 - 1900;
+    // myTM2.tm_wday;  // ignored!
+    // myTM2.tm_yday;  // ignored!
+    // myTM2.tm_isdst;  // ignored!
+#ifdef __TM_GMTOFF
+    myTM2.__TM_GMTOFF = -5 * 3600;
+#endif
+#ifdef __TM_ZONE
+    myTM2.__TM_ZONE = "EST";
+#endif
+    time_t compiledT2 = TimeUtils::tmToUTCTimeT(myTM2);
+    Serial.print("{0, 0, 19, 30, 5, 126, 0, 0, 0");
+#ifdef __TM_GMTOFF
+    Serial.print(", -5 * 3600");
+#endif
+#ifdef __TM_ZONE
+    Serial.print(", \"EST\"");
+#endif
+    Serial.print("} ");
+    Serial.print(compiledT2 == myTimestamp ? "correctly" : "INCORRECTLY");
+    Serial.print(" compiled to");
+    Serial.println(compiledT2);
+#endif
+
+    Serial.print("The structs convertedTM and myTM1 are ");
+    Serial.println(TimeUtils::sameTime(convertedTM, myTM1) ? "equal"
+                                                           : "NOT equal");
+
+
     // Convert the timestamp to a timestamp with a different epoch and offset
     // convention
     // Convert to GMT-5 (Eastern Standard Time) without changing the epoch

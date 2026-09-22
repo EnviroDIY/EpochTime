@@ -462,6 +462,47 @@ class TimeUtils {
     static etime_t getTimestamp(epochTime in_time, int32_t out_utcOffset = 0,
                                 epochStart out_epoch = epochStart::unix_epoch);
 
+
+    /**
+     * @brief Convert a tm struct containing a UTC calendar time to the
+     * processor's time_t representation without allowing mktime()'s local-time
+     * offset to change the represented instant.
+     *
+     * @param timeParts The tm structure to be converted to time_t.
+     * @return The corresponding time_t value representing the same instant in
+     * UTC.
+     */
+    static time_t tmToUTCTimeT(tm timeParts);
+
+    /**
+     * @brief Convert a processor time_t containing a UTC timestamp into a tm
+     * struct.
+     *
+     * gmtime_r() is deliberately used without applying the core timezone
+     * offset: adding the mktime offset here would turn a UTC timestamp into
+     * local time. TimeUtils still supplies the processor epoch information so
+     * that this remains correct on cores whose time_t epoch is not Unix.
+     *
+     * @param t The time_t value to be converted.
+     * @param timeParts The tm structure to store the converted calendar time.
+     */
+
+    static void utcTimeTToTm(time_t t, tm& timeParts);
+
+    /**
+     * @brief Compare the calendar fields of two tm values.
+     *
+     * Fields derived from the calendar time (tm_wday, tm_yday, and tm_isdst)
+     * are intentionally ignored.
+     *
+     * @param a The first tm structure to compare.
+     * @param b The second tm structure to compare.
+     * @return True if the two tm structures represent the same calendar time,
+     * ignoring fields derived from the calendar time (tm_wday, tm_yday, and
+     * tm_isdst).
+     */
+    static bool sameTime(const tm& a, const tm& b);
+
     /**
      * @brief Initialize the core time configuration.
      *
