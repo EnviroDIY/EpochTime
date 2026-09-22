@@ -51,15 +51,15 @@ void setup() {
     TimeUtils::utcTimeTToTm(myTimestamp, convertedTM);
     Serial.print("Timestamp broken into components: ");
     Serial.print("Year: ");
-    Serial.print(convertedTM.tm_year) + 100;
+    Serial.print(convertedTM.tm_year + 100);
     Serial.print(" Month: ");
-    Serial.print(convertedTM.tm_mon) + 1;
+    Serial.print(convertedTM.tm_mon + 1);
     Serial.print(" Day: ");
     Serial.println(convertedTM.tm_mday);
     Serial.print("Day of Year: ");
     Serial.print(convertedTM.tm_yday);
     Serial.print(" Day of Week: ");
-    Serial.println(convertedTM.tm_wday) + 1;
+    Serial.println(convertedTM.tm_wday + 1);
     Serial.print("Hour: ");
     Serial.print(convertedTM.tm_hour);
     Serial.print(" Minute: ");
