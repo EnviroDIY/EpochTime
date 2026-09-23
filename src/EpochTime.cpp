@@ -92,25 +92,31 @@ void TimeUtils::formatISO8601(char* buffer, epochTime in_time,
     buffer[25] = '\0';
 }
 
+#if EPOCHTIME_ENABLE_STRING_FORMATTING
 String TimeUtils::formatISO8601(etime_t epochSeconds, int8_t utcOffsetHours,
                                 epochStart epoch) {
     return formatISO8601(epochTime(epochSeconds, utcOffsetHours, epoch),
                          utcOffsetHours);
 }
+
 String TimeUtils::formatISO8601(epochTime in_time, int8_t utcOffsetHours) {
     char buffer[26];
     formatISO8601(buffer, in_time, utcOffsetHours);
     return String(buffer);
 }
+#endif
 
+#if EPOCHTIME_ENABLE_STRFTIME
 void TimeUtils::formatDateTime(char* buffer, const char* fmt,
                                etime_t epochSeconds, epochStart epoch) {
     formatDateTime(buffer, fmt, epochTime(epochSeconds, 0, epoch));
 }
+#if EPOCHTIME_ENABLE_STRING_FORMATTING
 String TimeUtils::formatDateTime(const char* fmt, etime_t epochSeconds,
                                  epochStart epoch) {
     return formatDateTime(fmt, epochTime(epochSeconds, 0, epoch));
 }
+#endif
 void TimeUtils::formatDateTime(char* buffer, const char* fmt,
                                epochTime in_time) {
     _ensureInitialized();
@@ -127,6 +133,7 @@ void TimeUtils::formatDateTime(char* buffer, const char* fmt,
     // use strftime (from time.h) to format the time
     strftime(buffer, 39, fmt, tmp);
 }
+#if EPOCHTIME_ENABLE_STRING_FORMATTING
 String TimeUtils::formatDateTime(const char* fmt, epochTime in_time) {
     // 38+1 for the longest common English format:
     // Wednesday, September 30, 2026 23:59:59
@@ -134,7 +141,10 @@ String TimeUtils::formatDateTime(const char* fmt, epochTime in_time) {
     formatDateTime(buffer, fmt, in_time);
     return String(buffer);
 }
+#endif
+#endif  // EPOCHTIME_ENABLE_STRFTIME
 
+#if EPOCHTIME_ENABLE_STRING_FORMATTING
 String TimeUtils::printEpochName(epochStart epoch) {
     switch (epoch) {
         case epochStart::unix_epoch: return "Unix";
@@ -154,6 +164,7 @@ String TimeUtils::printEpochStart(epochStart epoch) {
         default: return "UNKNOWN";
     }
 }
+#endif
 
 bool TimeUtils::isTimeSane(etime_t ts, int8_t utcOffset, epochStart epoch) {
     return isTimeSane(epochTime(ts, utcOffset, epoch));

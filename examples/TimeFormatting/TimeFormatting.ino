@@ -318,12 +318,14 @@ void setup() {
     Serial.print("ISO 8601, input timezone, from a single timestamp (assumes "
                  "input and output are in the same timezone): ");
     Serial.println(TimeUtils::formatISO8601(myTimestamp, myOffset, myEpoch));
+#if EPOCHTIME_ENABLE_STRFTIME
     Serial.print("Custom Format, from a epochTime object (timezone IGNORED): ");
     Serial.println(
         TimeUtils::formatDateTime("%A, %B %d, %Y %H:%M:%S", myEpochTime));
     Serial.print("Custom Format, from a single timestamp (timezone IGNORED): ");
     Serial.println(TimeUtils::formatDateTime("%A, %B %d, %Y %H:%M:%S",
                                              myTimestamp, myEpoch));
+#endif
 
     // Print the time in various formats
     Serial.println("\n\nTime Sanity Checking Example");
@@ -355,3 +357,5 @@ void setup() {
 void loop() {
     // Nothing to do here
 }
+
+// cSpell:ignore TINYUSB

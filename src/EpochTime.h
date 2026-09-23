@@ -14,8 +14,31 @@
 #ifndef SRC_EPOCHTIME_H_
 #define SRC_EPOCHTIME_H_
 
+// Set EPOCHTIME_ENABLE_STRING_FORMATTING to 0 or set
+// EPOCHTIME_DISABLE_STRING_FORMATTING to 1 before including this header to omit
+// all String-returning convenience functions from the library.
+#if !defined(EPOCHTIME_ENABLE_STRING_FORMATTING) && \
+    !defined(EPOCHTIME_DISABLE_STRING_FORMATTING)
+/// Enable string formatting by default if not explicitly disabled
+#define EPOCHTIME_ENABLE_STRING_FORMATTING 1
+#endif
+
+// Set EPOCHTIME_ENABLE_STRFTIME to 0 or set EPOCHTIME_DISABLE_STRFTIME to 1 to
+// omit the generic strftime()-based formatting API. ISO8601 formatting does not
+// depend on strftime().
+#if !defined(EPOCHTIME_ENABLE_STRFTIME) || \
+    (defined(EPOCHTIME_DISABLE_STRFTIME) && EPOCHTIME_DISABLE_STRFTIME != 0)
+/// Disable strftime-based formatting if explicitly requested
+#define EPOCHTIME_ENABLE_STRFTIME 0
+#endif
+
 // Include other in-library and external dependencies
+#if EPOCHTIME_ENABLE_STRING_FORMATTING
 #include <Arduino.h>
+#else
+#include <stddef.h>
+#endif
+#include <stdint.h>
 #include <time.h>
 
 #if !defined(EARLIEST_SANE_UNIX_TIMESTAMP) || defined(DOXYGEN)
@@ -285,6 +308,7 @@ class TimeUtils {
     static void formatISO8601(char* buffer, epochTime in_time,
                               int8_t utcOffsetHours);
 
+#if EPOCHTIME_ENABLE_STRING_FORMATTING
     /**
      * @brief Convert an epoch time into a ISO8601 formatted String.
      */
@@ -303,7 +327,9 @@ class TimeUtils {
      * utcOffsetHours for formatting the output String.
      */
     static String formatISO8601(epochTime in_time, int8_t utcOffsetHours);
+#endif
 
+#if EPOCHTIME_ENABLE_STRFTIME
     /**
      * @brief Convert a single value timestamp into a character string based on
      * the input strftime format string and put it into the given buffer.
@@ -342,8 +368,10 @@ class TimeUtils {
      * @param epoch The epoch of the input epoch time.
      * @return A String object containing the formatted date and time.
      */
+#if EPOCHTIME_ENABLE_STRING_FORMATTING
     static String formatDateTime(const char* fmt, etime_t epochSeconds,
                                  epochStart epoch);
+#endif
     /**
      * @brief Convert an epoch time into a character string based on the input
      * strftime format string and put it into the given buffer.
@@ -378,8 +406,13 @@ class TimeUtils {
      * @param in_time An epochTime object
      * @return A String object containing the formatted date and time.
      */
+#if EPOCHTIME_ENABLE_STRING_FORMATTING
     static String formatDateTime(const char* fmt, epochTime in_time);
+#endif
 
+#endif  // EPOCHTIME_ENABLE_STRFTIME
+
+#if EPOCHTIME_ENABLE_STRING_FORMATTING
     /**
      * @brief Gets a string name for the epoch.
      * @param epoch The epoch to get the name of
@@ -392,6 +425,7 @@ class TimeUtils {
      * @return The starting date, in ISO8601
      */
     static String printEpochStart(epochStart epoch);
+#endif
 
     /**
      * @brief Check that a given epoch time (seconds since 1970) is within a
