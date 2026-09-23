@@ -384,30 +384,18 @@ int8_t TimeUtils::countLeaps(uint32_t gpsTime, bool unix2gps) {
     return nLeaps;
 }
 
-// Convert Unix Time to GPS Time
+// Convert Unix Time to GPS Time.
 etime_t TimeUtils::unix2gps(etime_t unixTime) {
-    // Add offset in seconds
-    bool isLeap;
-    if (fmod(unixTime, 1) != 0) {
-        unixTime = unixTime - 0.5;
-        isLeap   = 1;
-    } else {
-        isLeap = 0;
-    }
-    etime_t gpsTime = unixTime - EPOCH_UNIX_TO_GPS;
-    int8_t  nLeaps  = countLeaps(gpsTime, true);
-    gpsTime         = gpsTime + nLeaps + isLeap;
-    return gpsTime;
+    etime_t      gpsTime = unixTime - EPOCH_UNIX_TO_GPS;
+    const int8_t nLeaps  = countLeaps(gpsTime, true);
+    return gpsTime + nLeaps;
 }
 
-// Convert GPS Time to Unix Time
+// Convert GPS Time to Unix Time.
 etime_t TimeUtils::gps2unix(etime_t gpsTime) {
-    // Add offset in seconds
-    etime_t unixTime = gpsTime + EPOCH_UNIX_TO_GPS;
-    int8_t  nLeaps   = countLeaps(gpsTime, false);
-    unixTime         = unixTime - nLeaps;
-    if (isLeap(gpsTime)) { unixTime = unixTime + 0.5; }
-    return unixTime;
+    etime_t      unixTime = gpsTime + EPOCH_UNIX_TO_GPS;
+    const int8_t nLeaps   = countLeaps(gpsTime, false);
+    return unixTime - nLeaps;
 }
 
 // cSpell:words
