@@ -172,8 +172,8 @@ class epochTime {
      * @param utcOffset The offset from UTC in seconds for the timestamp;
      * optional, defaults to 0.
      */
-    epochTime(etime_t timestamp, int32_t utcOffset = 0,
-              epochStart epoch = epochStart::unix_epoch);
+    explicit epochTime(etime_t timestamp, int32_t utcOffset = 0,
+                       epochStart epoch = epochStart::unix_epoch);
 
     /**
      * @brief Deleted bool conversion operator
