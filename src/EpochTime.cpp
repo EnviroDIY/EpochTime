@@ -364,24 +364,22 @@ int32_t TimeUtils::getProcessorTimeZone() {
     return tz_offset;
 }
 
-// Test to see if a GPS second is a leap second
+// Test to see if a GPS second is a leap second.
 bool TimeUtils::isLeap(uint32_t gpsTime) {
-    bool isLeap = false;
-    for (int8_t i = 0; i < NUMBER_LEAP_SECONDS; i++) {
-        if (gpsTime == leapSeconds[i]) { isLeap = true; }
+    for (uint8_t i = 0; i < NUMBER_LEAP_SECONDS; ++i) {
+        if (gpsTime == leapSeconds[i]) { return true; }
+        if (gpsTime < leapSeconds[i]) { return false; }
     }
-    return isLeap;
+    return false;
 }
 
-// Count number of leap seconds that have passed
+// Count number of leap seconds that have passed.
 int8_t TimeUtils::countLeaps(uint32_t gpsTime, bool unix2gps) {
-    int8_t nLeaps = 0;  // number of leap seconds prior to gpsTime
-    for (int8_t i = 0; i < NUMBER_LEAP_SECONDS; i++) {
-        if (unix2gps) {
-            if (gpsTime >= leapSeconds[i] - i) { nLeaps++; }
-        } else {
-            if (gpsTime >= leapSeconds[i]) { nLeaps++; }
-        }
+    int8_t nLeaps = 0;
+    for (uint8_t i = 0; i < NUMBER_LEAP_SECONDS; ++i) {
+        const uint32_t leap = unix2gps ? leapSeconds[i] - i : leapSeconds[i];
+        if (gpsTime < leap) { break; }
+        ++nLeaps;
     }
     return nLeaps;
 }
