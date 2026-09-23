@@ -146,84 +146,40 @@ bool TimeUtils::isTimeSane(epochTime in_time) {
 
 etime_t TimeUtils::convertEpoch(etime_t in_timestamp, epochStart in_epoch,
                                 epochStart out_epoch) {
+    if (in_epoch == out_epoch) { return in_timestamp; }
+
+    // Normalize the input to Unix epoch first, then convert Unix epoch to the
+    // requested output epoch. This keeps the conversion matrix small while
+    // preserving the GPS leap-second handling in unix2gps()/gps2unix().
+    etime_t unixTimestamp;
     switch (in_epoch) {
         case epochStart::unix_epoch: {
-            switch (out_epoch) {
-                case epochStart::y2k_epoch: {
-                    return in_timestamp - EPOCH_UNIX_TO_Y2K;
-                }
-                case epochStart::gps_epoch: {
-                    return TimeUtils::unix2gps(in_timestamp);
-                }
-                case epochStart::nist_epoch: {
-                    return in_timestamp + EPOCH_NIST_TO_UNIX;
-                }
-                case epochStart::unix_epoch:
-                default: {
-                    return in_timestamp;
-                }
-            }
+            unixTimestamp = in_timestamp;
+            break;
         }
         case epochStart::y2k_epoch: {
-            switch (out_epoch) {
-                case epochStart::unix_epoch: {
-                    return in_timestamp + EPOCH_UNIX_TO_Y2K;
-                }
-                case epochStart::gps_epoch: {
-                    return TimeUtils::unix2gps(in_timestamp +
-                                               EPOCH_UNIX_TO_Y2K);
-                }
-                case epochStart::nist_epoch: {
-                    return in_timestamp + EPOCH_NIST_TO_UNIX +
-                        EPOCH_UNIX_TO_Y2K;
-                }
-                case epochStart::y2k_epoch:
-                default: {
-                    return in_timestamp;
-                }
-            }
+            unixTimestamp = in_timestamp + EPOCH_UNIX_TO_Y2K;
+            break;
         }
         case epochStart::gps_epoch: {
-            switch (out_epoch) {
-                case epochStart::unix_epoch: {
-                    return TimeUtils::gps2unix(in_timestamp);
-                }
-                case epochStart::y2k_epoch: {
-                    return TimeUtils::gps2unix(in_timestamp) -
-                        EPOCH_UNIX_TO_Y2K;
-                }
-                case epochStart::nist_epoch: {
-                    return TimeUtils::gps2unix(in_timestamp) +
-                        EPOCH_NIST_TO_UNIX;
-                }
-                case epochStart::gps_epoch:
-                default: {
-                    return in_timestamp;
-                }
-            }
+            unixTimestamp = TimeUtils::gps2unix(in_timestamp);
+            break;
         }
         case epochStart::nist_epoch: {
-            switch (out_epoch) {
-                case epochStart::unix_epoch: {
-                    return in_timestamp - EPOCH_NIST_TO_UNIX;
-                }
-                case epochStart::y2k_epoch: {
-                    return in_timestamp - EPOCH_NIST_TO_UNIX -
-                        EPOCH_UNIX_TO_Y2K;
-                }
-                case epochStart::gps_epoch: {
-                    return TimeUtils::unix2gps(in_timestamp -
-                                               EPOCH_NIST_TO_UNIX);
-                }
-                case epochStart::nist_epoch:
-                default: {
-                    return in_timestamp;
-                }
-            }
+            unixTimestamp = in_timestamp - EPOCH_NIST_TO_UNIX;
+            break;
         }
         default: {
             return in_timestamp;
         }
+    }
+
+    switch (out_epoch) {
+        case epochStart::unix_epoch: return unixTimestamp;
+        case epochStart::y2k_epoch: return unixTimestamp - EPOCH_UNIX_TO_Y2K;
+        case epochStart::gps_epoch: return TimeUtils::unix2gps(unixTimestamp);
+        case epochStart::nist_epoch: return unixTimestamp + EPOCH_NIST_TO_UNIX;
+        default: return in_timestamp;
     }
 }
 
