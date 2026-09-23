@@ -78,43 +78,47 @@ void setup() {
         delay(10);
     }
 
-    Serial.println("\n\n----------------------------");
-    Serial.println("epochTime and TimeUtils Demo");
-    Serial.println("----------------------------");
+    Serial.println(F("\n\n----------------------------"));
+    Serial.println(F("epochTime and TimeUtils Demo"));
+    Serial.println(F("----------------------------"));
 
     // Print the core epoch and timezone
-    Serial.print("Core epoch: ");
+    Serial.print(F("Core epoch: "));
     Serial.println(TimeUtils::printEpochName(TimeUtils::getCoreEpochStart()));
-    Serial.print("Core epoch start: ");
+    Serial.print(F("Core epoch start: "));
     Serial.println(TimeUtils::printEpochStart(TimeUtils::getCoreEpochStart()));
-    Serial.print("Core timezone: ");
+    Serial.print(F("Core timezone: "));
     Serial.println(TimeUtils::getCoreTimeZone());
 
-    Serial.println("\n\nEpoch Time and Unix Timestamp Conversion Example");
-    Serial.println("-----------------------");
+    Serial.println(F("\n\nEpoch Time and Unix Timestamp Conversion Example"));
+    Serial.println(F("-----------------------"));
 
-    Serial.println("Input Timestamp: " +
-                   String(static_cast<uint32_t>(myTimestamp)));
-    Serial.println("Input Offset from UTC in Seconds: " + String(myOffset));
-    Serial.println("Input Epoch: " + TimeUtils::printEpochName(myEpoch) +
-                   " (start: " + TimeUtils::printEpochStart(myEpoch) + ")");
+    Serial.print(F("Input Timestamp: "));
+    Serial.println(static_cast<uint32_t>(myTimestamp));
+    Serial.print(F("Input Offset from UTC in Seconds: "));
+    Serial.println(myOffset);
+    Serial.print("Input Epoch: ");
+    Serial.print(TimeUtils::printEpochName(myEpoch));
+    Serial.print(" (start: ");
+    Serial.print(TimeUtils::printEpochStart(myEpoch));
+    Serial.println(")");
 
     // Convert the timestamp to a timestamp with a different epoch and offset
     // convention
     // Convert to GMT-5 (Eastern Standard Time) without changing the epoch
     time_t tsEST = TimeUtils::convertTZOffset(myTimestamp, myOffset, -5 * 3600);
-    Serial.print("Converted Timestamp (GMT-5): ");
+    Serial.print(F("Converted Timestamp (GMT-5): "));
     Serial.println(static_cast<uint32_t>(tsEST));
     // Convert to Y2K epoch without changing the timezone
     time_t tsY2K = TimeUtils::convertEpoch(myTimestamp, myEpoch,
                                            epochStart::y2k_epoch);
-    Serial.print("Converted Timestamp (Y2K): ");
+    Serial.print(F("Converted Timestamp (Y2K): "));
     Serial.println(static_cast<uint32_t>(tsY2K));
     // Change both the timezone and epoch to GMT-5 (Eastern Standard Time) in
     // the Y2K epoch
     time_t ts_EST_Y2K = TimeUtils::convertOffsetAndEpoch(
         myTimestamp, myOffset, myEpoch, -5 * 3600, epochStart::y2k_epoch);
-    Serial.print("Converted Timestamp (GMT-5, Y2K): ");
+    Serial.print(F("Converted Timestamp (GMT-5, Y2K): "));
     Serial.println(static_cast<uint32_t>(ts_EST_Y2K));
 
     // Create an epochTime object
@@ -134,34 +138,34 @@ void setup() {
     Serial.println(static_cast<uint32_t>(ts_EST_Y2K_3));
 
     // check if the timestamp is equal the converted value
-    Serial.println("Checking if the converted timestamp is equal to the "
-                   "epochTime object's timestamp: ");
+    Serial.println(F("Checking if the converted timestamp is equal to the "
+                     "epochTime object's timestamp: "));
     if (myEpochTime ==
         epochTime(ts_EST_Y2K, -5 * 3600, epochStart::y2k_epoch)) {
-        Serial.println("\tYay! Conversion worked!");
+        Serial.println(F("\tYay! Conversion worked!"));
     } else {
-        Serial.println("\tWARNING: Conversion did NOT work!");
+        Serial.println(F("\tWARNING: Conversion did NOT work!"));
     }
 
     // check if the timestamp is equal to a different timestamp
-    Serial.println("Checking that the epochTime object's timestamp is equal to "
-                   "2026-07-30T01:13:46Z-04:00");
+    Serial.println(F("Checking that the epochTime object's timestamp is equal "
+                     "to 2026-07-30T01:13:46Z-04:00"));
     if (myEpochTime ==
         epochTime(1785431629, -4 * 3600, epochStart::unix_epoch)) {
-        Serial.println("\tThe timestamps are equal!");
+        Serial.println(F("\tThe timestamps are equal!"));
     } else {
-        Serial.println("\tThe timestamps are NOT equal!");
+        Serial.println(F("\tThe timestamps are NOT equal!"));
     }
 
-    Serial.println("\n\ntm Comparison Example");
-    Serial.println("-----------------------");
+    Serial.println(F("\n\ntm Comparison Example"));
+    Serial.println(F("-----------------------"));
 
 
 #ifdef __TM_GMTOFF
-    Serial.println("This core supports __TM_GMTOFF");
+    Serial.println(F("This core supports __TM_GMTOFF"));
 #endif
 #ifdef __TM_ZONE
-    Serial.println("This core supports __TM_ZONE");
+    Serial.println(F("This core supports __TM_ZONE"));
 #endif
 
     tm myTM1       = {};
@@ -233,124 +237,133 @@ void setup() {
     myTM4.__TM_ZONE = "GMT";
 #endif
 
-    Serial.print("The structs ");
+    Serial.print(F("The structs "));
     Serial.print(tmToArrayString(myTM1));
-    Serial.print(" and ");
+    Serial.print(F(" and "));
     Serial.print(tmToArrayString(myTM2));
-    Serial.print(" are ");
+    Serial.print(F(" are "));
     Serial.println(TimeUtils::sameTime(myTM1, myTM2) ? "equal" : "NOT equal");
 #if defined(__TM_GMTOFF) || defined(__TM_ZONE)
-    Serial.println("\tThey should be equal since the processing takes the "
-                   "timezone into account.");
+    Serial.println(F("\tThey should be equal since the processing takes the "
+                     "timezone into account."));
 #else
-    Serial.println("\tTimezone information is not available, equality may not "
-                   "account for timezone.");
+    Serial.println(
+        F("\tTimezone information is not available, equality may not "
+          "account for timezone."));
 #endif
 
-    Serial.print("The structs ");
+    Serial.print(F("The structs "));
     Serial.print(tmToArrayString(myTM1));
-    Serial.print(" and ");
+    Serial.print(F(" and "));
     Serial.print(tmToArrayString(myTM3));
-    Serial.print(" are ");
-    Serial.println(TimeUtils::sameTime(myTM1, myTM3) ? "equal" : "NOT equal");
-    Serial.println("\tThey should not be equal since they are different times");
+    Serial.print(F(" are "));
+    Serial.println(TimeUtils::sameTime(myTM1, myTM3) ? F("equal")
+                                                     : F("NOT equal"));
+    Serial.println(
+        F("\tThey should not be equal since they are different times"));
 
-    Serial.print("The structs ");
+    Serial.print(F("The structs "));
     Serial.print(tmToArrayString(myTM1));
-    Serial.print(" and ");
+    Serial.print(F(" and "));
     Serial.print(tmToArrayString(myTM4));
-    Serial.print(" are ");
-    Serial.println(TimeUtils::sameTime(myTM1, myTM4) ? "equal" : "NOT equal");
-    Serial.println("\tThey should be equal since wday and yday are ignored.");
+    Serial.print(F(" are "));
+    Serial.println(TimeUtils::sameTime(myTM1, myTM4) ? F("equal")
+                                                     : F("NOT equal"));
+    Serial.println(
+        F("\tThey should be equal since wday and yday are ignored."));
 
-    Serial.println("\n\ntm Conversion Example");
-    Serial.println("-----------------------");
+    Serial.println(F("\n\ntm Conversion Example"));
+    Serial.println(F("-----------------------"));
 
     time_t compiledT1 = TimeUtils::tmToUTCTimeT(myTM1);
     Serial.print(tmToArrayString(myTM1));
-    Serial.print(" compiled to ");
+    Serial.print(F(" compiled to "));
     Serial.println(static_cast<uint32_t>(compiledT1));
 
     time_t compiledT4 = TimeUtils::tmToUTCTimeT(myTM4);
     Serial.print(tmToArrayString(myTM4));
-    Serial.print(" compiled to ");
+    Serial.print(F(" compiled to "));
     Serial.println(static_cast<uint32_t>(compiledT4));
 
     time_t compiledT2 = TimeUtils::tmToUTCTimeT(myTM2);
     Serial.print(tmToArrayString(myTM2));
-    Serial.print(" compiled to ");
+    Serial.print(F(" compiled to "));
     Serial.println(static_cast<uint32_t>(compiledT2));
 
     time_t compiledT3 = TimeUtils::tmToUTCTimeT(myTM3);
     Serial.print(tmToArrayString(myTM3));
-    Serial.print(" compiled to ");
+    Serial.print(F(" compiled to "));
     Serial.println(static_cast<uint32_t>(compiledT3));
 
 
-    Serial.println("\n\ntime_t Breakdown Example");
-    Serial.println("-----------------------");
+    Serial.println(F("\n\ntime_t Breakdown Example"));
+    Serial.println(F("-----------------------"));
 
     // Convert a time_t object and into a tm structure
     tm     convertedTM   = {};
     time_t convertedTime = TimeUtils::getTimeT(myTimestamp, myOffset, myEpoch);
     TimeUtils::utcTimeTToTm(convertedTime, convertedTM);
-    Serial.print("Timestamp: " + String(static_cast<uint32_t>(myTimestamp)));
-    Serial.println(" time_t: " + String(static_cast<uint32_t>(convertedTime)));
-    Serial.println("Timestamp broken into components: ");
+    Serial.print(F("Timestamp: "));
+    Serial.print(static_cast<uint32_t>(myTimestamp));
+    Serial.print(F(" time_t: "));
+    Serial.println(static_cast<uint32_t>(convertedTime));
+    Serial.println(F("Timestamp broken into components: "));
     printTmComponents(convertedTM, Serial);
 
     tm convertedTM2 = {};
     // 1647354630 = Tuesday, March 15, 2022 at 2:30:30 PM
     time_t convertedTime2 = TimeUtils::getTimeT(1647354630, myOffset, myEpoch);
     TimeUtils::utcTimeTToTm(convertedTime2, convertedTM2);
-    Serial.print("Timestamp: " + String(static_cast<uint32_t>(1647354630)));
-    Serial.println(" time_t: " + String(static_cast<uint32_t>(convertedTime2)));
-    Serial.println("Timestamp broken into components: ");
+    Serial.print(F("Timestamp: "));
+    Serial.print(static_cast<uint32_t>(1647354630));
+    Serial.print(F(" time_t: "));
+    Serial.println(static_cast<uint32_t>(convertedTime2));
+    Serial.println(F("Timestamp broken into components: "));
     printTmComponents(convertedTM2, Serial);
 
 
     // Print the time in various formats
-    Serial.println("\n\nTime Formatting Example");
-    Serial.println("-----------------------");
-    Serial.print("ISO 8601, UTC-5, from the epochTime object (timezone should "
-                 "be converted): ");
+    Serial.println(F("\n\nTime Formatting Example"));
+    Serial.println(F("-----------------------"));
+    Serial.print(F("ISO 8601, UTC-5, from the epochTime object (timezone "
+                   "should be converted): "));
     Serial.println(TimeUtils::formatISO8601(myEpochTime, -5));
-    Serial.print("ISO 8601, input timezone, from a single timestamp (assumes "
-                 "input and output are in the same timezone): ");
+    Serial.print(F("ISO 8601, input timezone, from a single timestamp (assumes "
+                   "input and output are in the same timezone): "));
     Serial.println(TimeUtils::formatISO8601(myTimestamp, myOffset, myEpoch));
 #if EPOCHTIME_ENABLE_STRFTIME
-    Serial.print("Custom Format, from a epochTime object (timezone IGNORED): ");
+    Serial.print(
+        F("Custom Format, from a epochTime object (timezone IGNORED): "));
     Serial.println(
         TimeUtils::formatDateTime("%A, %B %d, %Y %H:%M:%S", myEpochTime));
-    Serial.print("Custom Format, from a single timestamp (timezone IGNORED): ");
+    Serial.print(
+        F("Custom Format, from a single timestamp (timezone IGNORED): "));
     Serial.println(TimeUtils::formatDateTime("%A, %B %d, %Y %H:%M:%S",
                                              myTimestamp, myEpoch));
 #endif
 
     // Print the time in various formats
-    Serial.println("\n\nTime Sanity Checking Example");
-    Serial.println("-----------------------");
-    Serial.println("Is the timestamp sane? " +
-                   String(TimeUtils::isTimeSane(myTimestamp, myOffset, myEpoch)
-                              ? "Yes"
-                              : "No"));
-    Serial.println("Is the epochTime sane? " +
-                   String(TimeUtils::isTimeSane(myEpochTime) ? "Yes" : "No"));
+    Serial.println(F("\n\nTime Sanity Checking Example"));
+    Serial.println(F("-----------------------"));
+    Serial.println(F("Is the timestamp sane? "));
+    Serial.println(TimeUtils::isTimeSane(myTimestamp, myOffset, myEpoch)
+                       ? F("Yes")
+                       : F("No"));
+    Serial.println(F("Is the epochTime sane? "));
+    Serial.println(TimeUtils::isTimeSane(myEpochTime) ? F("Yes") : F("No"));
+    Serial.println(F("Is 2027-01-01T00:00:00Z sane? "));
+    Serial.println(TimeUtils::isTimeSane(1893456000, 0, epochStart::unix_epoch)
+                       ? F("Yes")
+                       : F("No"));
+    Serial.println(F("Is 2023-01-01T00:00:00Z sane? "));
+    Serial.println(TimeUtils::isTimeSane(1672531200, 0, epochStart::unix_epoch)
+                       ? F("Yes")
+                       : F("No"));
     Serial.println(
-        "Is 2027-01-01T00:00:00Z sane? " +
-        String(TimeUtils::isTimeSane(1893456000, 0, epochStart::unix_epoch)
-                   ? "Yes"
-                   : "No"));
-    Serial.println(
-        "Is 2023-01-01T00:00:00Z sane? " +
-        String(TimeUtils::isTimeSane(1672531200, 0, epochStart::unix_epoch)
-                   ? "Yes"
-                   : "No"));
-    Serial.println(
-        "\tNOTE: January 1, 2023 is **not** considered to be a sane time "
-        "because it is several years before the creation of this library.  If "
-        "your Arduino real time clock returns this time, it is clearly not set "
-        "correctly.");
+        F("\tNOTE: January 1, 2023 is **not** considered to be a sane time "
+          "because it is several years before the creation of this library.  "
+          "If your Arduino real time clock returns this time, it is clearly "
+          "not set correctly."));
 }
 
 // The Arduino loop function, which runs repeatedly after setup()

@@ -39,13 +39,13 @@ void loop() {
     uint32_t ts = now.getEpoch();
     // print the time in ISO8601 format, assuming an offset of -5 hours (Eastern
     // Standard Time)
-    Serial.print("ISO 8601: ");
+    Serial.print(F("ISO 8601: "));
     Serial.println(TimeUtils::formatISO8601(ts, -5, epochStart::unix_epoch));
     // Now convert the timestamp to a smarter epochTime object assuming the RTC
     // is programmed in UTC
     epochTime myEpochTime(ts, 0, epochStart::unix_epoch);
     // print the time in ISO8601 format, but with the printed time in UTC-5
     // (EST), not the RTC's timezone
-    Serial.print("ISO 8601 (UTC-5): ");
+    Serial.print(F("ISO 8601 (UTC-5): "));
     Serial.println(TimeUtils::formatISO8601(myEpochTime, -5 * 3600));
 }
