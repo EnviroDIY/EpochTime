@@ -98,7 +98,7 @@ void TimeUtils::formatDateTime(char* buffer, const char* fmt,
     // create a temporary time struct
     // tm is a struct for time parts, defined in time.h
     // NOTE: gmtime requires a true time_t as input!
-    struct tm* tmp = gmtime(&t);
+    tm* tmp = gmtime(&t);
 
     // use strftime (from time.h) to format the time
     strftime(buffer, 39, fmt, tmp);
@@ -260,32 +260,33 @@ void TimeUtils::_ensureInitialized() {
     if (!TimeUtils::_initialized) { TimeUtils::begin(); }
 }
 
-// figure out where the epoch starts for the processor
-// This is awkward, but I'm struggling to find any documentation on
-// what the year component input should be for mktime  - and I'm pretty sure
-// it varies across processors.  If both gmtime and strftime are time.h for
-// the processor then this should work regardless of how the year is
-// represented within the tm structs.
+// Figure out when the epoch used by time_t starts for the processor.  The
+// tm_year member of a tm struct is the number of years since 1900, per C/C++
+// standard, but while time_t always contains a number of seconds since Some
+// epoch start, when the epoch starts, and the integer size of the time_t vary
+// by Arduino cores and platforms.
 epochStart TimeUtils::getProcessorEpochStart() {
-    // NOTE: gmtime requires a true time_t as input!
-    time_t     epoch_zero    = 0;
-    struct tm* epoch_zero_tm = gmtime(&epoch_zero);
-    // create a temporary buffer to put the timestamp into
-    char epoch_zero_year[5];  // Max of yyyy with \0 terminator
-    // use strftime (from time.h) to format the time
-    strftime(epoch_zero_year, 5, "%Y", epoch_zero_tm);
-    int zero_year = atoi(epoch_zero_year);
-
-    epochStart ret_val;
-    switch (zero_year) {
-        default:
-        case 1970: ret_val = epochStart::unix_epoch; break;
-        case 2000: ret_val = epochStart::y2k_epoch; break;
-        case 1980: ret_val = epochStart::gps_epoch; break;
-        case 1900: ret_val = epochStart::nist_epoch; break;
+    // Create a time_t representing the epoch start (0 seconds since the epoch)
+    time_t epoch_zero = 0;
+    // Use the core library to convert the time_t value into a tm struct.
+    // The tm_year member is the number of years since 1900, per C/C++ standard.
+    tm* epoch_zero_tm = gmtime(&epoch_zero);
+    // If conversion failed, default to Unix epoch.
+    if (epoch_zero_tm == nullptr) {
+        TimeUtils::_core_epoch = epochStart::unix_epoch;
+        return TimeUtils::_core_epoch;
     }
-    TimeUtils::_core_epoch = ret_val;
-    return ret_val;
+    // Since the tm_year member is the number of years since 1900, we add 1900
+    // to get the actual year.
+    const int zero_year = epoch_zero_tm->tm_year + 1900;
+    switch (zero_year) {
+        case 2000: TimeUtils::_core_epoch = epochStart::y2k_epoch; break;
+        case 1980: TimeUtils::_core_epoch = epochStart::gps_epoch; break;
+        case 1900: TimeUtils::_core_epoch = epochStart::nist_epoch; break;
+        case 1970:
+        default: TimeUtils::_core_epoch = epochStart::unix_epoch; break;
+    }
+    return TimeUtils::_core_epoch;
 }
 
 // This is yet another awkward function, but time support varies across device
