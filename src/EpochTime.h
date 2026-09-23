@@ -275,24 +275,6 @@ class TimeUtils {
     TimeUtils() = delete;
 
     /**
-     * @brief Convert an epoch time (seconds since a fixed epoch start) into a
-     * ISO8601 formatted string.
-     *
-     * Code modified from parts of the SparkFun RV-8803 library.
-     *
-     * @param epochSeconds The number of seconds since the start of the given
-     * epoch.
-     * @param utcOffsetHours The offset from UTC in **hours** for the printed
-     * time.
-     * @param epoch The epoch of the input epoch time.
-     * @return An ISO8601 formatted String.
-     *
-     * @warning This function does **not** change the timezone of the input
-     * epoch time. It assumes that the input timestamp value is already in the
-     * correct timezone. The utcOffsetHours parameter is only used for
-     * formatting the output string.
-     */
-    /**
      * @brief Format an epoch time as ISO8601 into a caller-supplied buffer.
      *
      * The buffer must be at least 26 bytes long. The resulting string is
@@ -310,7 +292,20 @@ class TimeUtils {
 
 #if EPOCHTIME_ENABLE_STRING_FORMATTING
     /**
-     * @brief Convert an epoch time into a ISO8601 formatted String.
+     * @brief Convert an epoch time (seconds since a fixed epoch start) into an
+     * ISO8601 formatted String.
+     *
+     * @param epochSeconds The number of seconds since the start of the given
+     * epoch.
+     * @param utcOffsetHours The offset from UTC in **hours** for the printed
+     * time.
+     * @param epoch The epoch of the input epoch time.
+     * @return An ISO8601 formatted String.
+     *
+     * @warning This function does **not** change the timezone of the input
+     * epoch time. It assumes that the input timestamp value is already in the
+     * correct timezone. The utcOffsetHours parameter is only used for
+     * formatting the output string.
      */
     static String formatISO8601(etime_t epochSeconds, int8_t utcOffsetHours,
                                 epochStart epoch);
