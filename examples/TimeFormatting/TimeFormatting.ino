@@ -11,7 +11,7 @@
 // Include the main header
 #include <EpochTime.h>
 
-#if (defined(ARDUINO_NRF52840_FEATHER)) && !defined(USE_TINYUSB)
+#if (defined(ARDUINO_NRF52840_FEATHER)) && !defined(ADAFRUIT_TINYUSB_H_)
 #include <Adafruit_TinyUSB.h>  // for Serial
 #endif
 

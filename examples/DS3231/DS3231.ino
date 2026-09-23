@@ -15,6 +15,10 @@
 // Include the DS3231 RTC library
 #include <Sodaq_DS3231.h>
 
+#if (defined(ARDUINO_NRF52840_FEATHER)) && !defined(ADAFRUIT_TINYUSB_H_)
+#include <Adafruit_TinyUSB.h>  // for Serial
+#endif
+
 // The Arduino setup function, which runs once at startup
 void setup() {
     // Start the serial port
@@ -47,5 +51,7 @@ void loop() {
     // print the time in ISO8601 format, but with the printed time in UTC-5
     // (EST), not the RTC's timezone
     Serial.print(F("ISO 8601 (UTC-5): "));
-    Serial.println(TimeUtils::formatISO8601(myEpochTime, -5 * 3600));
+    Serial.println(TimeUtils::formatISO8601(myEpochTime, -5));
 }
+
+// cSpell:ignore TINYUSB

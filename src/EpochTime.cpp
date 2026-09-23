@@ -335,7 +335,7 @@ epochStart TimeUtils::getProcessorEpochStart() {
 // epoch start to figure out the offset.
 int32_t TimeUtils::getProcessorTimeZone() {
     // Create a time struct for Jan 1, 2000 at 00:00:00 in the processor's epoch
-    tm timeParts       = {};
+    tm timeParts;
     timeParts.tm_sec   = 0;
     timeParts.tm_min   = 0;
     timeParts.tm_hour  = 0;
