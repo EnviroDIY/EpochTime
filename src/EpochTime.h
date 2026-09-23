@@ -269,10 +269,29 @@ class TimeUtils {
      * correct timezone. The utcOffsetHours parameter is only used for
      * formatting the output string.
      */
+    /**
+     * @brief Format an epoch time as ISO8601 into a caller-supplied buffer.
+     *
+     * The buffer must be at least 26 bytes long. The resulting string is
+     * `YYYY-MM-DDThh:mm:ss+hh:mm` (25 characters plus the null terminator).
+     *
+     * This implementation deliberately avoids strftime(), snprintf(), and
+     * intermediate String objects.
+     *
+     * @param buffer A buffer of at least 26 bytes.
+     * @param in_time The time to format.
+     * @param utcOffsetHours The offset from UTC in hours for the printed time.
+     */
+    static void formatISO8601(char* buffer, epochTime in_time,
+                              int8_t utcOffsetHours);
+
+    /**
+     * @brief Convert an epoch time into a ISO8601 formatted String.
+     */
     static String formatISO8601(etime_t epochSeconds, int8_t utcOffsetHours,
                                 epochStart epoch);
     /**
-     * @brief Convert an epochTime object into a ISO8601 formatted string.
+     * @brief Convert an epochTime object into a ISO8601 formatted String.
      *
      * @param in_time An epochTime object
      * @param utcOffsetHours The offset from UTC in **hours** for the printed
@@ -281,7 +300,7 @@ class TimeUtils {
      *
      * @remark This function assumes that the input epochTime object was created
      * with the correct UTC offset. It **will** convert the time to the given
-     * utcOffsetHours for formatting the output string.
+     * utcOffsetHours for formatting the output String.
      */
     static String formatISO8601(epochTime in_time, int8_t utcOffsetHours);
 
@@ -362,13 +381,13 @@ class TimeUtils {
     static String formatDateTime(const char* fmt, epochTime in_time);
 
     /**
-     * @brief Gets a string name for the epoch     *
+     * @brief Gets a string name for the epoch.
      * @param epoch The epoch to get the name of
      * @return The name for the epoch
      */
     static String printEpochName(epochStart epoch);
     /**
-     * @brief Gets a string for the start date of the epoch
+     * @brief Gets a string for the start date of the epoch.
      * @param epoch The epoch to get the name of
      * @return The starting date, in ISO8601
      */

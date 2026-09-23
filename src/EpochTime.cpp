@@ -29,54 +29,78 @@ etime_t epochTime::getTimestamp(int32_t out_utcOffset, epochStart out_epoch) {
     return TimeUtils::getTimestamp(*this, out_utcOffset, out_epoch);
 }
 
-// This converts an epoch time (seconds since a fixed epoch start) into a
-// ISO8601 formatted string. Code modified from parts of the SparkFun RV-8803
-// library
+// Format an epoch time as ISO8601 without using strftime(), snprintf(), or
+// intermediate String objects.  The caller must provide at least 26 bytes.
+void TimeUtils::formatISO8601(char* buffer, epochTime in_time,
+                              int8_t utcOffsetHours) {
+    _ensureInitialized();
+
+    // Convert to the processor core's epoch/timezone before using gmtime().
+    etime_t t_core = TimeUtils::getTimestamp(in_time, TimeUtils::_core_tz,
+                                             TimeUtils::_core_epoch);
+    time_t  t      = static_cast<time_t>(TimeUtils::convertTZOffset(
+        t_core, TimeUtils::_core_tz, utcOffsetHours * 3600L));
+
+    tm timeParts;
+    gmtime_r(&t, &timeParts);
+
+    const int16_t year   = static_cast<int16_t>(timeParts.tm_year + 1900);
+    uint8_t       month  = static_cast<uint8_t>(timeParts.tm_mon + 1);
+    uint8_t       day    = static_cast<uint8_t>(timeParts.tm_mday);
+    uint8_t       hour   = static_cast<uint8_t>(timeParts.tm_hour);
+    uint8_t       minute = static_cast<uint8_t>(timeParts.tm_min);
+    uint8_t       second = static_cast<uint8_t>(timeParts.tm_sec);
+
+    // YYYY-MM-DDThh:mm:ss
+    buffer[0]  = static_cast<char>('0' + (year / 1000) % 10);
+    buffer[1]  = static_cast<char>('0' + (year / 100) % 10);
+    buffer[2]  = static_cast<char>('0' + (year / 10) % 10);
+    buffer[3]  = static_cast<char>('0' + year % 10);
+    buffer[4]  = '-';
+    buffer[5]  = static_cast<char>('0' + month / 10);
+    buffer[6]  = static_cast<char>('0' + month % 10);
+    buffer[7]  = '-';
+    buffer[8]  = static_cast<char>('0' + day / 10);
+    buffer[9]  = static_cast<char>('0' + day % 10);
+    buffer[10] = 'T';
+    buffer[11] = static_cast<char>('0' + hour / 10);
+    buffer[12] = static_cast<char>('0' + hour % 10);
+    buffer[13] = ':';
+    buffer[14] = static_cast<char>('0' + minute / 10);
+    buffer[15] = static_cast<char>('0' + minute % 10);
+    buffer[16] = ':';
+    buffer[17] = static_cast<char>('0' + second / 10);
+    buffer[18] = static_cast<char>('0' + second % 10);
+
+    // The public API currently accepts whole-hour offsets. Keep the output
+    // construction explicit rather than invoking printf-family formatting.
+    int16_t offsetMinutes = static_cast<int16_t>(utcOffsetHours) * 60;
+    char    sign          = '+';
+    if (offsetMinutes < 0) {
+        sign          = '-';
+        offsetMinutes = -offsetMinutes;
+    }
+    const uint8_t offsetHours = static_cast<uint8_t>(offsetMinutes / 60);
+    const uint8_t offsetMins  = static_cast<uint8_t>(offsetMinutes % 60);
+
+    buffer[19] = sign;
+    buffer[20] = static_cast<char>('0' + offsetHours / 10);
+    buffer[21] = static_cast<char>('0' + offsetHours % 10);
+    buffer[22] = ':';
+    buffer[23] = static_cast<char>('0' + offsetMins / 10);
+    buffer[24] = static_cast<char>('0' + offsetMins % 10);
+    buffer[25] = '\0';
+}
+
 String TimeUtils::formatISO8601(etime_t epochSeconds, int8_t utcOffsetHours,
                                 epochStart epoch) {
     return formatISO8601(epochTime(epochSeconds, utcOffsetHours, epoch),
                          utcOffsetHours);
 }
 String TimeUtils::formatISO8601(epochTime in_time, int8_t utcOffsetHours) {
-    _ensureInitialized();
-    // Get a single-value timestamp for the input epochTime object in the epoch
-    // and timezone offset used by the processor core (i.e., used by gmtime).
-    etime_t t_c_e = TimeUtils::getTimestamp(in_time, TimeUtils::_core_tz,
-                                            TimeUtils::_core_epoch);
-    // convert that time to the desired timezone offset for printing
-    // gmtime knows nothing about timezones, so we convert before calling it.
-    // The conversion is done in seconds, so we multiply the input hours by 3600
-    // to get seconds.
-    time_t t = TimeUtils::convertTZOffset(t_c_e, TimeUtils::_core_tz,
-                                          utcOffsetHours * 3600);
-
-    // create a temporary time struct
-    // tm is a struct for time parts, defined in time.h
-    // NOTE: gmtime requires a true time_t as input!
-    struct tm* tmp = gmtime(&t);
-
-    // create a temporary buffer to put the timestamp into
-    static char
-        time8601tz[20];  // Max of yyyy-mm-ddThh:mm:ss with \0 terminator
-    // use strftime (from time.h) to format the time
-    strftime(time8601tz, 20, "%Y-%m-%dT%H:%M:%S", tmp);
-
-    // Correct the timezone format
-    // NOTE: the %z format from strftime formats the timezone as +hhmm, but we
-    // need +hh:mm
-    char   isotz[8];
-    int8_t quarterHours = utcOffsetHours * 4;
-    char   plusMinus    = '+';
-    if (quarterHours < 0) {
-        plusMinus = '-';
-        quarterHours *= -1;
-    }
-    uint16_t tz_mins = quarterHours * 15;
-    uint8_t  tzh     = tz_mins / 60;
-    uint8_t  tzm     = tz_mins % 60;
-    snprintf(isotz, sizeof(isotz), "%c%02d:%02d", plusMinus, tzh, tzm);
-
-    return String(time8601tz) + String(isotz);
+    char buffer[26];
+    formatISO8601(buffer, in_time, utcOffsetHours);
+    return String(buffer);
 }
 
 void TimeUtils::formatDateTime(char* buffer, const char* fmt,
