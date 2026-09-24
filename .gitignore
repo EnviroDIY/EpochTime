@@ -85,6 +85,7 @@ boards/*
 # Other
 archive/*
 filters/*
+continuous_integration_artifacts/*
 runDoxygen.bat
 docs/logs/*
 docs/output_*.log
@@ -96,3 +97,4 @@ sync.ffs_db
 run_mcss.bat
 installWorkingDependencies.bat
 clang_format_all.bat
+buildCI.bat
