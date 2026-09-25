@@ -29,8 +29,8 @@ convertEpoch	KEYWORD2
 convertTZOffset	KEYWORD2
 convertOffsetAndEpoch	KEYWORD2
 getTimeT	KEYWORD2
-tmToUTCTimeT	KEYWORD2
-utcTimeTToTm	KEYWORD2
+tmToEpochTime	KEYWORD2
+fillTimeParts	KEYWORD2
 sameTime	KEYWORD2
 begin	KEYWORD2
 getCoreEpochStart	KEYWORD2

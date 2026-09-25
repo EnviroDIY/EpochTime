@@ -42,7 +42,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
-- Added two functions for converting between tm structs and time_t objects: `tmToUTCTimeT(tm timeParts)` and `utcTimeTToTm(time_t t, tm& timeParts)`
+- Added two functions for filling tm objects: `fillTimeParts(epochTime in_time, tm& timeParts)` and `fillTimeParts(timestamp_t in_timestamp, int32_t in_utcOffset, epochStart in_epoch, tm& timeParts)`
+- Added two functions for getting a time_t `getTimeT(epochTime in_time)` and `getTimeT(timestamp_t in_timestamp, int32_t in_utcOffset = 0, epochStart in_epoch = epochStart::unix_epoch)`
+- Added one function for getting an EpochTime from a tm struct: `epochTime tmToEpochTime(tm timeParts);`
 - Added a function to compare two tm structs: `sameTime(const tm& a, const tm& b)`
 
 ***

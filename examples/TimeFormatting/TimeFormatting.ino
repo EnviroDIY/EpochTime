@@ -275,25 +275,25 @@ void setup() {
     Serial.println(F("\n\ntm Conversion Example"));
     Serial.println(F("-----------------------"));
 
-    time_t compiledT1 = TimeUtils::tmToUTCTimeT(myTM1);
+    epochTime compiledT1 = TimeUtils::tmToEpochTime(myTM1);
     Serial.print(tmToArrayString(myTM1));
     Serial.print(F(" compiled to "));
-    Serial.println(static_cast<uint32_t>(compiledT1));
+    Serial.println(static_cast<uint32_t>(compiledT1.getTimestamp()));
 
-    time_t compiledT4 = TimeUtils::tmToUTCTimeT(myTM4);
+    epochTime compiledT4 = TimeUtils::tmToEpochTime(myTM4);
     Serial.print(tmToArrayString(myTM4));
     Serial.print(F(" compiled to "));
-    Serial.println(static_cast<uint32_t>(compiledT4));
+    Serial.println(static_cast<uint32_t>(compiledT4.getTimestamp()));
 
-    time_t compiledT2 = TimeUtils::tmToUTCTimeT(myTM2);
+    epochTime compiledT2 = TimeUtils::tmToEpochTime(myTM2);
     Serial.print(tmToArrayString(myTM2));
     Serial.print(F(" compiled to "));
-    Serial.println(static_cast<uint32_t>(compiledT2));
+    Serial.println(static_cast<uint32_t>(compiledT2.getTimestamp()));
 
-    time_t compiledT3 = TimeUtils::tmToUTCTimeT(myTM3);
+    epochTime compiledT3 = TimeUtils::tmToEpochTime(myTM3);
     Serial.print(tmToArrayString(myTM3));
     Serial.print(F(" compiled to "));
-    Serial.println(static_cast<uint32_t>(compiledT3));
+    Serial.println(static_cast<uint32_t>(compiledT3.getTimestamp()));
 
 
     Serial.println(F("\n\ntime_t Breakdown Example"));
@@ -302,7 +302,7 @@ void setup() {
     // Convert a time_t object and into a tm structure
     tm     convertedTM   = {};
     time_t convertedTime = TimeUtils::getTimeT(myTimestamp, myOffset, myEpoch);
-    TimeUtils::utcTimeTToTm(convertedTime, convertedTM);
+    TimeUtils::fillTimeParts(myTimestamp, myOffset, myEpoch, convertedTM);
     Serial.print(F("Timestamp: "));
     Serial.print(static_cast<uint32_t>(myTimestamp));
     Serial.print(F(" time_t: "));
@@ -313,7 +313,7 @@ void setup() {
     tm convertedTM2 = {};
     // 1647354630 = Tuesday, March 15, 2022 at 2:30:30 PM
     time_t convertedTime2 = TimeUtils::getTimeT(1647354630, myOffset, myEpoch);
-    TimeUtils::utcTimeTToTm(convertedTime2, convertedTM2);
+    TimeUtils::fillTimeParts(1647354630, myOffset, myEpoch, convertedTM2);
     Serial.print(F("Timestamp: "));
     Serial.print(static_cast<uint32_t>(1647354630));
     Serial.print(F(" time_t: "));

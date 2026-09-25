@@ -549,14 +549,8 @@ class TimeUtils {
     static time_t getTimeT(timestamp_t in_timestamp, int32_t in_utcOffset = 0,
                            epochStart in_epoch = epochStart::unix_epoch);
 
-
     /**
-     * @brief Convert a tm struct containing a UTC calendar time to the
-     * processor's time_t representation without allowing mktime()'s local-time
-     * offset to change the represented instant.
-     *
-     * @important The timestamp returned will be in the processor's epoch and
-     * sized following the specific platform's definition of time_t.
+     * @brief Convert a tm struct to a fully populated epochTime object.
      *
      * The tm structure contains the following members, all of type int (or in
      * some cases, int8_t and int6_t):
@@ -574,32 +568,31 @@ class TimeUtils {
      * - __TM_GMTOFF: Offset from UTC in seconds [in GNU / BSD Extensions only]
      * - __TM_ZONE: Time zone abbreviation [in GNU / BSD Extensions only]
      *
-     * @param timeParts The tm structure to be converted to time_t.
-     * @return The corresponding time_t value representing the same instant in
-     * UTC.
+     * @param timeParts The tm structure to be converted to an epochTime object.
+     * @return The corresponding epochTime object representing the same instant
+     * in UTC.
      */
-    static time_t tmToUTCTimeT(tm timeParts);
+    static epochTime tmToEpochTime(tm timeParts);
 
     /**
-     * @brief Convert a processor time_t containing a UTC timestamp into a tm
-     * struct.
+     * @brief Convert a fully-defined epochTime to a tm struct.
      *
-     * gmtime_r() is deliberately used without applying the core timezone
-     * offset: adding the mktime offset here would turn a UTC timestamp into
-     * local time. TimeUtils still supplies the processor epoch information so
-     * that this remains correct on cores whose time_t epoch is not Unix.
-     *
-     * @attention time_t is a number of seconds since the epoch.  The starting
-     * epoch and the integer size is processor/core dependent.  **This is not
-     * necessarily a Unix timestamp!**
-     *
-     * @param t The time_t value to be converted.  This must be a true time_t
-     * following the conventions for the epoch start for the given
-     * processor/core.  **This is not necessarily a Unix timestamp!**
+     * @param in_time An epochTime object.
      * @param timeParts The tm structure to store the converted calendar time.
      */
+    static void fillTimeParts(epochTime in_time, tm& timeParts);
 
-    static void utcTimeTToTm(time_t t, tm& timeParts);
+    /**
+     * @brief Convert a timestamp to a tm struct.
+     *
+     * @param in_timestamp The input timestamp in seconds since the start of
+     * the input epoch.
+     * @param in_utcOffset The UTC offset of the input timestamp, in seconds.
+     * @param in_epoch The epoch of the input timestamp.
+     * @param timeParts The tm structure to store the converted calendar time.
+     */
+    static void fillTimeParts(timestamp_t in_timestamp, int32_t in_utcOffset,
+                              epochStart in_epoch, tm& timeParts);
 
     /**
      * @brief Compare the calendar fields of two tm values.

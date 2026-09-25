@@ -254,26 +254,42 @@ time_t TimeUtils::getTimeT(timestamp_t in_timestamp, int32_t in_utcOffset,
         TimeUtils::getCoreEpochStart()));
 }
 
-time_t TimeUtils::tmToUTCTimeT(tm timeParts) {
+epochTime TimeUtils::tmToEpochTime(tm timeParts) {
     _ensureInitialized();
     // convert the time parts from the tm struct into an timestamp_t
-    // the mktime function will return the time_t as seconds from 1/1/1970 in
-    // the **processor's local time** converting from the timezone (if any)
-    // given in the time parts to that processor local zone.
-    timestamp_t t = static_cast<timestamp_t>(mktime(&timeParts));
-    // Convert the timestamp_t (time_t) from the processor's timezone into UTC
-    t = TimeUtils::convertOffsetAndEpoch(t, TimeUtils::getCoreTimeZone(),
-                                         TimeUtils::getCoreEpochStart(), 0,
-                                         TimeUtils::getCoreEpochStart());
-    return static_cast<time_t>(t);
+    // the mktime function will return a time_t which represents the time in the
+    // **processor's epoch** and the **processor's local time** converting from
+    // the timezone (if any) given in the time parts to that processor local
+    // zone.
+    time_t t = mktime(&timeParts);
+    // cast into a timestamp_t
+    timestamp_t ts = static_cast<timestamp_t>(t);
+    // Convert the timestamp_t to an epochTime object using the known
+    // processor's timezone and epoch start
+    return epochTime(ts, TimeUtils::getCoreTimeZone(),
+                     TimeUtils::getCoreEpochStart());
 }
 
-void TimeUtils::utcTimeTToTm(time_t t, tm& timeParts) {
+void TimeUtils::fillTimeParts(epochTime in_time, tm& timeParts) {
     _ensureInitialized();
-    // Convert the timestamp_t (time_t) from UTC to the processor's timezone
-    timestamp_t coreTime = TimeUtils::convertOffsetAndEpoch(
-        static_cast<timestamp_t>(t), 0, TimeUtils::getCoreEpochStart(),
-        TimeUtils::getCoreTimeZone(), TimeUtils::getCoreEpochStart());
+    // Get a timestamp in the processor's epoch and UTC timezone
+    timestamp_t coreTime = TimeUtils::convertEpoch(
+        static_cast<timestamp_t>(in_time._unixUTCTimestamp),
+        epochStart::unix_epoch, TimeUtils::getCoreEpochStart());
+    // cast back from timestamp_t to time_t
+    time_t gmtimeTime = static_cast<time_t>(coreTime);
+    // converts the time stamp pointed to by gmtimeTime into broken-down time,
+    // expressed as UTC
+    gmtime_r(&gmtimeTime, &timeParts);
+}
+
+void TimeUtils::fillTimeParts(timestamp_t in_timestamp, int32_t in_utcOffset,
+                              epochStart in_epoch, tm& timeParts) {
+    _ensureInitialized();
+    // Get a timestamp in the processor's epoch and UTC timezone
+    timestamp_t coreTime =
+        TimeUtils::convertOffsetAndEpoch(in_timestamp, in_utcOffset, in_epoch,
+                                         0, TimeUtils::getCoreEpochStart());
     // cast back from timestamp_t to time_t
     time_t gmtimeTime = static_cast<time_t>(coreTime);
     // converts the time stamp pointed to by gmtimeTime into broken-down time,
