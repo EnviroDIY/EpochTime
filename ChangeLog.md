@@ -47,6 +47,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added one function for getting an EpochTime from a tm struct: `epochTime tmToEpochTime(tm timeParts);`
 - Added a function to compare two tm structs: `sameTime(const tm& a, const tm& b)`
 
+### Removed
+
+- Removed DS3231 example
+
 ***
 
 ## [1.0.0]

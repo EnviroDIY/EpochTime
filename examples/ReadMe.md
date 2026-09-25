@@ -8,7 +8,6 @@ ___
 
 - [Epoch Time Examples](#epoch-time-examples)
   - [Time Formatting](#time-formatting)
-  - [DS3231](#ds3231)
 
 <!--! @endif -->
 
@@ -23,11 +22,3 @@ This example demonstrates using the time formatting, conversion, and sanity chec
 - [The all functions example on GitHub](https://github.com/EnviroDIY/EpochTime/tree/master/examples/TimeFormatting)
 
 <!--! @subpage example_time_formatting -->
-
-## DS3231<!--! {#examples_ds3231} -->
-
-This example demonstrates getting a time from a DS3231 RTC and pretty-printing it to the serial port using the TimeUtils functions.
-
-- [The DS3231 example on GitHub](https://github.com/EnviroDIY/EpochTime/tree/master/examples/BlynkClient)
-
-<!--! @subpage example_ds3231 -->
