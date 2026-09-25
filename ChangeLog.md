@@ -14,6 +14,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - [ChangeLog](#changelog)
   - [Unreleased](#unreleased)
+  - [1.1.0](#110)
   - [1.0.0](#100)
 
 <!--! @endif -->
@@ -21,6 +22,18 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ***
 
 ## [Unreleased]
+
+### Changed
+
+### Added
+
+### Removed
+
+### Fixed
+
+***
+
+## [1.1.0]
 
 ### Changed
 
@@ -32,10 +45,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added two functions for converting between tm structs and time_t objects: `tmToUTCTimeT(tm timeParts)` and `utcTimeTToTm(time_t t, tm& timeParts)`
 - Added a function to compare two tm structs: `sameTime(const tm& a, const tm& b)`
 
-### Removed
-
-### Fixed
-
 ***
 
 ## [1.0.0]
@@ -44,7 +53,8 @@ Initial release, taking code from the ModularSensors library
 
 ***
 
-[Unreleased]: https://github.com/EnviroDIY/EpochTime/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/EnviroDIY/EpochTime/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/EnviroDIY/EpochTime/releases/tag/v1.1.0
 [1.0.0]: https://github.com/EnviroDIY/EpochTime/releases/tag/v1.0.0
 
 <!--! @tableofcontents{HTML:1} -->
