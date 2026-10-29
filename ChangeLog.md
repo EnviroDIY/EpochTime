@@ -14,6 +14,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - [ChangeLog](#changelog)
   - [Unreleased](#unreleased)
+  - [1.1.1](#111)
   - [1.1.0](#110)
   - [1.0.0](#100)
 
@@ -30,6 +31,18 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Removed
 
 ### Fixed
+
+***
+
+## [1.1.1]
+
+### Changed
+
+- The time-formatting example now displays month and weekday names alongside their numeric values, and shows invalid values when a month or weekday is out of range.
+
+### Fixed
+
+- Corrected timezone offset handling when formatting ISO 8601 timestamps.
 
 ***
 
@@ -59,7 +72,8 @@ Initial release, taking code from the ModularSensors library
 
 ***
 
-[Unreleased]: https://github.com/EnviroDIY/EpochTime/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/EnviroDIY/EpochTime/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/EnviroDIY/EpochTime/releases/tag/v1.1.1
 [1.1.0]: https://github.com/EnviroDIY/EpochTime/releases/tag/v1.1.0
 [1.0.0]: https://github.com/EnviroDIY/EpochTime/releases/tag/v1.0.0
 
