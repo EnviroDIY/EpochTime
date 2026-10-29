@@ -39,17 +39,33 @@ String tmToArrayString(const tm& timeStruct) {
     return retStr;
 }
 
+const char* months[]    = {"January",   "February", "March",    "April",
+                           "May",       "June",     "July",     "August",
+                           "September", "October",  "November", "December"};
+const char* week_days[] = {"Sunday",   "Monday", "Tuesday", "Wednesday",
+                           "Thursday", "Friday", "Saturday"};
+
 void printTmComponents(const tm& timeStruct, Stream& stream) {
     stream.print("    Year: ");
     stream.print(timeStruct.tm_year + 1900);
     stream.print(", Month: ");
     stream.print(timeStruct.tm_mon + 1);
+    stream.print(" (");
+    stream.print(timeStruct.tm_mon >= 0 && timeStruct.tm_mon < 12
+                     ? months[timeStruct.tm_mon]
+                     : "invalid");
+    stream.print(")");
     stream.print(", Day: ");
     stream.println(timeStruct.tm_mday);
     stream.print("    Day of Year: ");
     stream.print(timeStruct.tm_yday + 1);
     stream.print(", Day of Week: ");
-    stream.println(timeStruct.tm_wday == 0 ? 7 : timeStruct.tm_wday);
+    stream.print(timeStruct.tm_wday + 1);
+    stream.print(" (");
+    stream.print((timeStruct.tm_wday >= 0 && timeStruct.tm_wday < 7)
+                     ? week_days[timeStruct.tm_wday]
+                     : "invalid");
+    stream.println(")");
     stream.print("    Hour: ");
     stream.print(timeStruct.tm_hour);
     stream.print(", Minute: ");
