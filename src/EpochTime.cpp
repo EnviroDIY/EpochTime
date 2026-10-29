@@ -41,7 +41,8 @@ void TimeUtils::formatISO8601(char* buffer, epochTime in_time,
     timestamp_t t_core = TimeUtils::getTimestamp(in_time, TimeUtils::_core_tz,
                                                  TimeUtils::_core_epoch);
     time_t      t      = static_cast<time_t>(TimeUtils::convertTZOffset(
-        t_core, TimeUtils::_core_tz, utcOffsetHours * 3600L));
+        t_core, TimeUtils::_core_tz,
+        static_cast<time_t>(utcOffsetHours) * 3600L));
 
     tm timeParts;
     gmtime_r(&t, &timeParts);
