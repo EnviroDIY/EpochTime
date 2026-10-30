@@ -168,19 +168,21 @@ size_t TimeUtils::formatDateTime(char* buffer, size_t bufferSize,
 
     _ensureInitialized();
     // Get a single number timestamp representing the input time in the
-    // processor core's epoch and the requested output offset before using
-    // gmtime().  The gmtime function expects the time_t to be in UTC and
-    // returns a tm struct representing UTC time; the important point being
-    // that gmtime does not apply any timezone offset to the input time.   So if
-    // we want the final time to be in a different offset, apply that offset
-    // first ands gmtime() will be none-the-wiser about the offset.
-    // NOTE: gmtime requires a true time_t (in whatever size the core uses) as
-    // input!
+    // processor core's epoch and the processor's UTC offset.
     time_t t = static_cast<time_t>(TimeUtils::getTimestamp(
-        in_time, in_time._utcOffsetSeconds, TimeUtils::_core_epoch));
+        in_time, TimeUtils::_coreUtcOffsetSeconds, TimeUtils::_core_epoch));
 
     // Now use gmtime() to get the broken-down UTC time corresponding to the
-    // adjusted timestamp.
+    // adjusted timestamp.   The gmtime function expects the time_t to be in UTC
+    // and returns a tm struct representing UTC time - the important point being
+    // that gmtime does not apply any timezone offset to the input time. BUT,
+    // we're not giving gmtime() UTC here, we're giving it local time, although
+    // its none-the-wiser.  This means that the output tm struct will represent
+    // the local time corresponding to the adjusted timestamp and any formatting
+    // done with strftime that expects the input to be in local time will work
+    // correctly.
+    // NOTE: gmtime requires a true time_t (in whatever size the core uses) as
+    // input!
     tm* tmp = gmtime(&t);
     if (tmp == nullptr) {
         buffer[0] = '\0';
@@ -404,6 +406,11 @@ bool TimeUtils::sameTime(const tm& a, const tm& b) {
     // epoch. The tm_wday and tm_yday values are overwritten with correct values
     // after computation; we copied the input tm structs to preserve the
     // originals.
+    if (mktime(&aCopy) == -1 || mktime(&bCopy) == -1) {
+        // If either timestamp could not be compiled, we cannot safely compare
+        // them.
+        return false;
+    }
     return mktime(&aCopy) == mktime(&bCopy);
 }
 

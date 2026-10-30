@@ -722,6 +722,12 @@ class TimeUtils {
      * @param a The first tm structure to compare.
      * @param b The second tm structure to compare.
      * @return True if the two tm structures represent the same instant.
+     *
+     * @warning If either tm structure cannot be converted to a valid timestamp
+     * the function will return false.  This means that any time outside the
+     * range of a time_t for a given processor will fail the comparison.  On a
+     * core with signed 32-bit time_t, two different dates after 2038 both fail
+     * and compare equal.
      */
     static bool sameTime(const tm& a, const tm& b);
 

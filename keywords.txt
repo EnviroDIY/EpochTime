@@ -21,7 +21,6 @@ operator!=	KEYWORD2
 getTimestamp	KEYWORD2
 TimeUtils	KEYWORD2
 formatISO8601	KEYWORD2
-formatDateTime	KEYWORD2
 printEpochName	KEYWORD2
 printEpochStart	KEYWORD2
 isTimeSane	KEYWORD2
@@ -35,9 +34,6 @@ sameTime	KEYWORD2
 begin	KEYWORD2
 getCoreEpochStart	KEYWORD2
 getCoreTimeZone	KEYWORD2
-_ensureInitialized	KEYWORD2
-getProcessorEpochStart	KEYWORD2
-getProcessorTimeZone	KEYWORD2
 
 #######################################
 # Constants (LITERAL1)
