@@ -175,10 +175,11 @@ enum class epochStart : timestamp_t {
 /**
  * @brief A class for time objects that are aware of their epoch start.
  *
- * This class stores timestamps internally in Unix epoch and provides methods
- * for converting between different epoch types. The functions for converting
- * between GPS and Unix epoch - taking leap seconds into account - were
- * converted from the php functions available at
+ * This class stores timestamps internally in UTC in the Unix epoch and retains
+ * the supplied UTC offset for formatting. It provides methods for converting
+ * between different epoch types. The functions for converting between GPS and
+ * Unix epoch - taking leap seconds into account - were converted from the php
+ * functions available at
  * https://www.andrews.edu/~tzs/timeconv/timealgorithm.html. From that site:
  *
  * > [W]hile there was an offset of 315964800 seconds between Unix and GPS
@@ -264,6 +265,12 @@ class epochTime {
      * @brief Internal reference to the timestamp IN UNIX EPOCH
      */
     timestamp_t _unixUTCTimestamp;
+
+    /**
+     * @brief The UTC offset supplied when the object was constructed, in
+     * seconds.
+     */
+    int32_t _utcOffsetSeconds;
 };
 
 

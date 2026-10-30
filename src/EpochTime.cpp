@@ -24,6 +24,7 @@ epochTime::epochTime(timestamp_t timestamp, int32_t utcOffsetSeconds,
                      epochStart epoch) {
     _unixUTCTimestamp = TimeUtils::convertOffsetAndEpoch(
         timestamp, utcOffsetSeconds, epoch, 0, epochStart::unix_epoch);
+    _utcOffsetSeconds = utcOffsetSeconds;
 }
 
 timestamp_t epochTime::getTimestamp(int32_t    out_utcOffsetSeconds,
