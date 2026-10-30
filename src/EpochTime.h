@@ -125,6 +125,10 @@ static_assert(EARLIEST_SANE_UNIX_TIMESTAMP < LATEST_SANE_UNIX_TIMESTAMP,
  *
  * @important Unlike a standard time_t, the value of this integer **does not**
  * imply any specific starting epoch.
+ *
+ * @warning On cores where timestamp_t is unsigned, calendar times before the
+ * selected epoch cannot be represented. Conversions that would produce a
+ * negative timestamp wrap according to unsigned integer arithmetic.
  */
 
 #if ((defined(ARDUINO_SAM_DUE) || defined(ARDUINO_NANO_ESP32)) && \
@@ -478,6 +482,10 @@ class TimeUtils {
      * @param in_epoch The epoch of the input timestamp.
      * @param out_epoch The desired epoch for the output.
      * @return The timestamp in seconds since the start of the output epoch.
+     *
+     * @warning On cores where timestamp_t is unsigned, dates before the output
+     * epoch cannot be represented and will wrap. Callers must keep conversions
+     * within the representable range of timestamp_t.
      */
     static timestamp_t convertEpoch(timestamp_t in_timestamp,
                                     epochStart in_epoch, epochStart out_epoch);
@@ -544,6 +552,14 @@ class TimeUtils {
      *
      * @param in_time An epochTime object.
      * @return The corresponding time_t value.
+     *
+     * The returned scalar represents the UTC instant using the processor
+     * core's time_t epoch. A core's local timezone affects mktime() and
+     * localtime(), but does not change this scalar value.
+     *
+     * @warning The instant must fit in the processor core's time_t type. This
+     * library does not assume that time_t is signed, 32 bits, 64 bits, or uses
+     * the Unix epoch.
      */
     static time_t getTimeT(epochTime in_time);
 
@@ -559,6 +575,14 @@ class TimeUtils {
      * seconds.
      * @param in_epoch The epoch of the input timestamp.
      * @return The corresponding time_t value.
+     *
+     * The returned scalar represents the UTC instant using the processor
+     * core's time_t epoch. A core's local timezone affects mktime() and
+     * localtime(), but does not change this scalar value.
+     *
+     * @warning The instant must fit in the processor core's time_t type. This
+     * library does not assume that time_t is signed, 32 bits, 64 bits, or uses
+     * the Unix epoch.
      */
     static time_t getTimeT(timestamp_t in_timestamp,
                            int32_t     in_utcOffsetSeconds = 0,
@@ -579,13 +603,22 @@ class TimeUtils {
      * - tm_wday: Days since Sunday, 0–6
      * - tm_yday: Days since January 1, 0–365
      * - tm_isdst: Daylight Saving Time flag; positive if DST is in effect, 0 if
-     * not, negative if unknown
+     * not, negative if unknown.  Some cores (ie, AVR) further specify that,
+     * when positive, the value of tm_isdst represents the amount time is
+     * advanced during Daylight Saving time.
      * - __TM_GMTOFF: Offset from UTC in seconds [in GNU / BSD Extensions only]
      * - __TM_ZONE: Time zone abbreviation [in GNU / BSD Extensions only]
      *
      * @param timeParts The tm structure to be converted to an epochTime object.
+     * If the core defines __TM_GMTOFF, that per-value offset is retained only
+     * for formatting. It is deliberately excluded from the mktime()
+     * conversion because libc implementations handle the field
+     * inconsistently. The standard calendar fields and tm_isdst are interpreted
+     * in the processor's local timezone. If __TM_GMTOFF is unavailable, the
+     * formatting offset is set to UTC.
+     *
      * @return The corresponding epochTime object representing the same instant
-     * in UTC.
+     * in UTC and retaining the input offset for formatting.
      */
     static epochTime tmToEpochTime(tm timeParts);
 

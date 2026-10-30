@@ -22,8 +22,11 @@ bool TimeUtils::_initialized = false;
 
 epochTime::epochTime(timestamp_t timestamp, int32_t utcOffsetSeconds,
                      epochStart epoch) {
+    // Convert the input timestamp from the input epoch and offset to Unix with
+    // 0 offset and store that
     _unixUTCTimestamp = TimeUtils::convertOffsetAndEpoch(
         timestamp, utcOffsetSeconds, epoch, 0, epochStart::unix_epoch);
+    // Also store the original UTC offset for later use
     _utcOffsetSeconds = utcOffsetSeconds;
 }
 
@@ -283,10 +286,12 @@ void TimeUtils::fillTimeParts(epochTime in_time, tm& timeParts) {
     timestamp_t coreTime = TimeUtils::convertEpoch(
         static_cast<timestamp_t>(in_time._unixUTCTimestamp),
         epochStart::unix_epoch, TimeUtils::getCoreEpochStart());
-    // cast back from timestamp_t to time_t
+    // cast back from timestamp_t to time_t; gmtime requires a true time_t (in
+    // whatever size the core uses) as input!
     time_t gmtimeTime = static_cast<time_t>(coreTime);
-    // converts the time stamp pointed to by gmtimeTime into broken-down time,
-    // expressed as UTC
+    // convert the time stamp pointed to by gmtimeTime into broken-down time,
+    // without doing any time-zone conversion.  The gmtime_r function treats the
+    // input as UTC and gives an output in UTC.
     gmtime_r(&gmtimeTime, &timeParts);
 }
 
@@ -294,14 +299,16 @@ void TimeUtils::fillTimeParts(timestamp_t in_timestamp,
                               int32_t in_utcOffsetSeconds, epochStart in_epoch,
                               tm& timeParts) {
     _ensureInitialized();
-    // Get a timestamp in the processor's epoch and UTC timezone
+    // Convert the input timestamp to the processor's epoch and UTC timezone
     timestamp_t coreTime = TimeUtils::convertOffsetAndEpoch(
         in_timestamp, in_utcOffsetSeconds, in_epoch, 0,
         TimeUtils::getCoreEpochStart());
-    // cast back from timestamp_t to time_t
+    // cast back from timestamp_t to time_t; gmtime requires a true time_t (in
+    // whatever size the core uses) as input!
     time_t gmtimeTime = static_cast<time_t>(coreTime);
-    // converts the time stamp pointed to by gmtimeTime into broken-down time,
-    // expressed as UTC
+    // convert the time stamp pointed to by gmtimeTime into broken-down time,
+    // without doing any time-zone conversion.  The gmtime_r function treats the
+    // input as UTC and gives an output in UTC.
     gmtime_r(&gmtimeTime, &timeParts);
 }
 
@@ -324,7 +331,7 @@ void TimeUtils::_ensureInitialized() {
 
 // Figure out when the epoch used by time_t starts for the processor.  The
 // tm_year member of a tm struct is the number of years since 1900, per C/C++
-// standard, but while time_t always contains a number of seconds since Some
+// standard, but while time_t always contains a number of seconds since some
 // epoch start, when the epoch starts, and the integer size of the time_t vary
 // by Arduino cores and platforms.
 epochStart TimeUtils::getProcessorEpochStart() {
@@ -332,6 +339,9 @@ epochStart TimeUtils::getProcessorEpochStart() {
     time_t epoch_zero = 0;
     // Use the core library to convert the time_t value into a tm struct.
     // The tm_year member is the number of years since 1900, per C/C++ standard.
+    // The gmtime function converts a time_t value - in UTC - into a tm struct
+    // representing UTC time.  The gmtime function does **not** do any timezone
+    // conversions - it assumes the start and end point are in UTC.
     tm* epoch_zero_tm = gmtime(&epoch_zero);
     // If conversion failed, default to Unix epoch.
     if (epoch_zero_tm == nullptr) {
@@ -353,13 +363,17 @@ epochStart TimeUtils::getProcessorEpochStart() {
 
 // This is yet another awkward function, but time support varies across device
 // cores and I'm not sure if there is a better way to get the timezone offset
-// that the processor/core considers "local time".  We need to know this because
-// the mktime function converts the input time to the number of seconds since
-// the epoch in the processor's timezone. The UTC version of the function
-// (timegm(&timeParts)) is not available on all platforms, and I have no idea
-// how to consistently set or detect the timezone across platforms, so instead
-// we will just use mktime and then compare the returned timestamp to the known
-// epoch start to figure out the offset.
+// that the processor/core considers "local time". mktime interprets its input
+// fields as local time and returns the corresponding time_t in UTC.  That is,
+// mktime **converts** the input to UTC based on the processor's local timezone.
+// A conversionless version that assumes the input is already in UTC and returns
+// UTC (ie, timegm(&timeParts) or mk_gmtime(const struct tm * timeptr)) is not
+// available on all platforms.  Because we need to use mktime to compile time
+// structs into timestamps, we need to know what conversion mktime is applying.
+// I have no idea how to consistently set or detect the timezone across
+// platforms, so instead we compare mktime's result for a known local calendar
+// time to that instant in the detected core epoch.  Thankfully, we only have to
+// do this once when we 'initialize.'
 int32_t TimeUtils::getProcessorTimeZone() {
     // Create a time struct for Jan 1, 2000 at 00:00:00 in the processor's epoch
     tm timeParts;
