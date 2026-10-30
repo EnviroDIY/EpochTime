@@ -11,6 +11,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  native_tests:
+    name: Native conversion tests
+    if: ${{ ! contains(github.event.head_commit.message, 'ci skip') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Compile and run native tests
+        run: bash tests/run_native_tests.sh
+
   build_examples:
     name: Build Examples
     if: ${{ ! contains(github.event.head_commit.message, 'ci skip') }}
