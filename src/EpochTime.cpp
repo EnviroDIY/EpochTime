@@ -270,18 +270,32 @@ time_t TimeUtils::getTimeT(timestamp_t in_timestamp,
 
 epochTime TimeUtils::tmToEpochTime(tm timeParts) {
     _ensureInitialized();
-    // convert the time parts from the tm struct into an timestamp_t
-    // the mktime function will return a time_t which represents the time in the
-    // **processor's epoch** and the **processor's local time** converting from
-    // the timezone (if any) given in the time parts to that processor local
-    // zone.
+#ifdef __TM_GMTOFF
+    // Preserve the input offset as formatting metadata, but do not let mktime
+    // use it to adjust or disambiguate the compiled timestamp.  LONG_MAX is not
+    // a valid UTC offset, so implementations that optionally inspect this field
+    // cannot treat it as an offset for the input calendar fields.
+    const int32_t inputUtcOffsetSeconds =
+        static_cast<int32_t>(timeParts.__TM_GMTOFF);
+    timeParts.__TM_GMTOFF = LONG_MAX;
+#endif
+    // Convert the standard calendar fields using the processor's local
+    // timezone. The saved __TM_GMTOFF value is not part of this conversion.
     time_t t = mktime(&timeParts);
     // cast into a timestamp_t
     timestamp_t ts = static_cast<timestamp_t>(t);
-    // Convert the timestamp_t to an epochTime object using the known
-    // processor's timezone and epoch start
-    return epochTime(ts, TimeUtils::getCoreTimeZone(),
-                     TimeUtils::getCoreEpochStart());
+
+    // Create an epochTime object from the timestamp, knowing that the timestamp
+    // we just got from mktime is using the core epoch and 0 offset
+    epochTime result(ts, 0, TimeUtils::_core_epoch);
+#ifdef __TM_GMTOFF
+    // Store the original UTC offset only for later formatting.
+    result._utcOffsetSeconds = inputUtcOffsetSeconds;
+#endif
+    // NOTE: We **intentionally** do not keep the
+    // TimeUtils::_coreUtcOffsetSeconds as the _utcOffsetSeconds of the
+    // epochTime object.
+    return result;
 }
 
 void TimeUtils::fillTimeParts(epochTime in_time, tm& timeParts) {
