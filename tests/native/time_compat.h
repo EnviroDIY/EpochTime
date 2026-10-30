@@ -4,6 +4,12 @@
 #include <time.h>
 
 #ifdef _WIN32
+/**
+ * @brief Windows replacement for POSIX gmtime_r in native tests.
+ *
+ * @param timer Pointer to the time value to convert.
+ * @param result Pointer to the tm structure that receives the UTC result.
+ */
 inline void epochTimeTestGmtimeR(const time_t* timer, tm* result) {
     gmtime_s(result, timer);
 }
