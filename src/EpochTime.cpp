@@ -9,6 +9,8 @@
  */
 #include "EpochTime.h"
 
+#include <limits.h>
+
 // Initialize the array for the leap seconds - taken from the defines
 const uint32_t TimeUtils::leapSeconds[NUMBER_LEAP_SECONDS] = LEAP_SECONDS;
 
@@ -313,9 +315,24 @@ void TimeUtils::fillTimeParts(timestamp_t in_timestamp,
 }
 
 bool TimeUtils::sameTime(const tm& a, const tm& b) {
-    return a.tm_sec == b.tm_sec && a.tm_min == b.tm_min &&
-        a.tm_hour == b.tm_hour && a.tm_mday == b.tm_mday &&
-        a.tm_mon == b.tm_mon && a.tm_year == b.tm_year;
+    // make copies of the input tm structs so the originals are not modified by
+    // mktime
+    tm aCopy = a;
+    tm bCopy = b;
+#ifdef __TM_GMTOFF
+    // UTC-offset fields are formatting metadata and must not affect the
+    // timestamps compiled for comparison.
+    aCopy.__TM_GMTOFF = LONG_MAX;
+    bCopy.__TM_GMTOFF = LONG_MAX;
+#endif
+    // compare the compiled timestamps returned by mktime
+    // NOTE: mktime() normalizes the given fields to valid ranges, applies the
+    // local timezone (via tzset()), and uses tm_sec, tm_min, tm_hour, tm_mday,
+    // tm_mon, tm_year, and tm_isdst to calculate the total seconds since the
+    // epoch. The tm_wday and tm_yday values are overwritten with correct values
+    // after computation; we copied the input tm structs to preserve the
+    // originals.
+    return mktime(&aCopy) == mktime(&bCopy);
 }
 
 void TimeUtils::begin() {

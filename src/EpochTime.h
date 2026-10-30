@@ -645,16 +645,17 @@ class TimeUtils {
                               tm& timeParts);
 
     /**
-     * @brief Compare the calendar fields of two tm values.
+     * @brief Compare the instants represented by two tm values.
      *
-     * Fields derived from the calendar time (tm_wday, tm_yday, and tm_isdst)
-     * are intentionally ignored.
+     * Fields derived from the calendar time (tm_wday and tm_yday) are
+     * intentionally ignored. The tm_isdst field is included in the comparison.
+     * If the core defines __TM_GMTOFF, its value is intentionally excluded from
+     * the comparison because it is treated as formatting metadata only. Both
+     * values are interpreted using the processor's local timezone.
      *
      * @param a The first tm structure to compare.
      * @param b The second tm structure to compare.
-     * @return True if the two tm structures represent the same calendar time,
-     * ignoring fields derived from the calendar time (tm_wday, tm_yday, and
-     * tm_isdst).
+     * @return True if the two tm structures represent the same instant.
      */
     static bool sameTime(const tm& a, const tm& b);
 
