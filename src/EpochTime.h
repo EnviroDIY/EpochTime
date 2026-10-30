@@ -728,7 +728,7 @@ class TimeUtils {
      * @param gpsTime A timestamp in the GPS epoch
      * @return True if the time is a leap second
      */
-    static bool isLeap(uint32_t gpsTime);
+    static bool isLeap(timestamp_t gpsTime);
 
     /**
      * @brief Count number of leap seconds that have passed between the start of
@@ -740,7 +740,7 @@ class TimeUtils {
      * @return The number of leap seconds that have passed between the start of
      * the GPS epoch and the given time
      */
-    static int8_t countLeaps(uint32_t gpsTime, bool unix2gps);
+    static int8_t countLeaps(timestamp_t gpsTime, bool unix2gps);
 
     /**
      * @brief Convert Unix time to GPS time.
