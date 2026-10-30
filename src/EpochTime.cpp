@@ -42,14 +42,23 @@ timestamp_t epochTime::getTimestamp(int32_t    out_utcOffsetSeconds,
 void TimeUtils::formatISO8601(char* buffer, epochTime in_time,
                               int8_t utcOffsetHours) {
     _ensureInitialized();
+    // convert the offset in hours to an offset in seconds
+    const int32_t outputUtcOffsetSeconds =
+        static_cast<int32_t>(utcOffsetHours) * 3600L;
+    // Get a single number timestamp representing the input time in the
+    // processor core's epoch and the requested output offset before using
+    // gmtime().  The gmtime function expects the time_t to be in UTC and
+    // returns a tm struct representing UTC time; the important point being
+    // that gmtime does not apply any timezone offset to the input time.   So if
+    // we want the final time to be in a different offset, apply that offset
+    // first ands gmtime() will be none-the-wiser about the offset.
+    // NOTE: gmtime requires a true time_t (in whatever size the core uses) as
+    // input!
+    time_t t = static_cast<time_t>(TimeUtils::getTimestamp(
+        in_time, outputUtcOffsetSeconds, TimeUtils::_core_epoch));
 
-    // Convert to the processor core's epoch/timezone before using gmtime().
-    timestamp_t t_core = TimeUtils::getTimestamp(in_time, TimeUtils::_coreUtcOffsetSeconds,
-                                                 TimeUtils::_core_epoch);
-    time_t      t      = static_cast<time_t>(TimeUtils::convertTZOffset(
-        t_core, TimeUtils::_coreUtcOffsetSeconds,
-        static_cast<time_t>(utcOffsetHours) * 3600L));
-
+    // Now use gmtime_r() to get the broken-down UTC time corresponding to the
+    // adjusted timestamp.
     tm timeParts;
     gmtime_r(&t, &timeParts);
 
@@ -103,11 +112,20 @@ void TimeUtils::formatISO8601(char* buffer, epochTime in_time,
     buffer[25] = '\0';
 }
 
+void TimeUtils::formatISO8601(char* buffer, timestamp_t epochSeconds,
+                              int8_t utcOffsetHours, epochStart epoch) {
+    const int32_t utcOffsetSeconds = static_cast<int32_t>(utcOffsetHours) *
+        3600L;
+    formatISO8601(buffer, epochTime(epochSeconds, utcOffsetSeconds, epoch),
+                  utcOffsetHours);
+}
+
 #if EPOCHTIME_ENABLE_STRING_FORMATTING
 String TimeUtils::formatISO8601(timestamp_t epochSeconds, int8_t utcOffsetHours,
                                 epochStart epoch) {
-    return formatISO8601(epochTime(epochSeconds, utcOffsetHours, epoch),
-                         utcOffsetHours);
+    char buffer[26];
+    formatISO8601(buffer, epochSeconds, utcOffsetHours, epoch);
+    return String(buffer);
 }
 
 String TimeUtils::formatISO8601(epochTime in_time, int8_t utcOffsetHours) {
@@ -120,7 +138,14 @@ String TimeUtils::formatISO8601(epochTime in_time, int8_t utcOffsetHours) {
 #if EPOCHTIME_ENABLE_STRFTIME
 void TimeUtils::formatDateTime(char* buffer, const char* fmt,
                                timestamp_t epochSeconds, epochStart epoch) {
-    formatDateTime(buffer, fmt, epochTime(epochSeconds, 0, epoch));
+    formatDateTime(buffer, 39, fmt, epochTime(epochSeconds, 0, epoch));
+}
+
+size_t TimeUtils::formatDateTime(char* buffer, size_t bufferSize,
+                                 const char* fmt, timestamp_t epochSeconds,
+                                 epochStart epoch) {
+    return formatDateTime(buffer, bufferSize, fmt,
+                          epochTime(epochSeconds, 0, epoch));
 }
 #if EPOCHTIME_ENABLE_STRING_FORMATTING
 String TimeUtils::formatDateTime(const char* fmt, timestamp_t epochSeconds,
@@ -130,26 +155,47 @@ String TimeUtils::formatDateTime(const char* fmt, timestamp_t epochSeconds,
 #endif
 void TimeUtils::formatDateTime(char* buffer, const char* fmt,
                                epochTime in_time) {
-    _ensureInitialized();
-    // Get a single-value timestamp for the input epochTime object in the epoch
-    // used by the processor core (i.e., used by gmtime).
-    time_t t = TimeUtils::getTimestamp(in_time, TimeUtils::_coreUtcOffsetSeconds,
-                                       TimeUtils::_core_epoch);
+    formatDateTime(buffer, 39, fmt, in_time);
+}
 
-    // create a temporary time struct
-    // tm is a struct for time parts, defined in time.h
-    // NOTE: gmtime requires a true time_t as input!
+size_t TimeUtils::formatDateTime(char* buffer, size_t bufferSize,
+                                 const char* fmt, epochTime in_time) {
+    if (buffer == nullptr || bufferSize == 0 || fmt == nullptr) { return 0; }
+
+    _ensureInitialized();
+    // Get a single number timestamp representing the input time in the
+    // processor core's epoch and the requested output offset before using
+    // gmtime().  The gmtime function expects the time_t to be in UTC and
+    // returns a tm struct representing UTC time; the important point being
+    // that gmtime does not apply any timezone offset to the input time.   So if
+    // we want the final time to be in a different offset, apply that offset
+    // first ands gmtime() will be none-the-wiser about the offset.
+    // NOTE: gmtime requires a true time_t (in whatever size the core uses) as
+    // input!
+    time_t t = static_cast<time_t>(TimeUtils::getTimestamp(
+        in_time, in_time._utcOffsetSeconds, TimeUtils::_core_epoch));
+
+    // Now use gmtime() to get the broken-down UTC time corresponding to the
+    // adjusted timestamp.
     tm* tmp = gmtime(&t);
+    if (tmp == nullptr) {
+        buffer[0] = '\0';
+        return 0;
+    }
 
     // use strftime (from time.h) to format the time
-    strftime(buffer, 39, fmt, tmp);
+    const size_t length = strftime(buffer, bufferSize, fmt, tmp);
+    if (length == 0) { buffer[0] = '\0'; }
+    return length;
 }
 #if EPOCHTIME_ENABLE_STRING_FORMATTING
 String TimeUtils::formatDateTime(const char* fmt, epochTime in_time) {
     // 38+1 for the longest common English format:
     // Wednesday, September 30, 2026 23:59:59
-    char buffer[39];
-    formatDateTime(buffer, fmt, in_time);
+    char buffer[39] = {};
+    if (formatDateTime(buffer, sizeof(buffer), fmt, in_time) == 0) {
+        return String();
+    }
     return String(buffer);
 }
 #endif

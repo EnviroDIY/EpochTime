@@ -355,12 +355,12 @@ void setup() {
     Serial.println(TimeUtils::formatISO8601(
         myTimestamp, static_cast<int8_t>(myUtcOffsetSeconds / 3600), myEpoch));
 #if EPOCHTIME_ENABLE_STRFTIME
-    Serial.print(
-        F("Custom Format, from a epochTime object (timezone IGNORED): "));
+    Serial.print(F("Custom Format, from an epochTime object (input offset "
+                   "preserved): "));
     Serial.println(
         TimeUtils::formatDateTime("%A, %B %d, %Y %H:%M:%S", myEpochTime));
-    Serial.print(
-        F("Custom Format, from a single timestamp (timezone IGNORED): "));
+    Serial.print(F("Custom Format, from a single timestamp (input offset "
+                   "preserved): "));
     Serial.println(TimeUtils::formatDateTime("%A, %B %d, %Y %H:%M:%S",
                                              myTimestamp, myEpoch));
 #endif

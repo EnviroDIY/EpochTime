@@ -313,6 +313,21 @@ class TimeUtils {
     static void formatISO8601(char* buffer, epochTime in_time,
                               int8_t utcOffsetHours);
 
+    /**
+     * @brief Format a single timestamp as ISO8601 into a caller-supplied
+     * buffer.
+     *
+     * The input timestamp is assumed to already represent calendar time in
+     * utcOffsetHours. The buffer must be at least 26 bytes.
+     *
+     * @param buffer A buffer of at least 26 bytes.
+     * @param epochSeconds Seconds since the start of the input epoch.
+     * @param utcOffsetHours The input and output offset from UTC in hours.
+     * @param epoch The epoch of the input timestamp.
+     */
+    static void formatISO8601(char* buffer, timestamp_t epochSeconds,
+                              int8_t utcOffsetHours, epochStart epoch);
+
 #if EPOCHTIME_ENABLE_STRING_FORMATTING
     /**
      * @brief Convert an epoch time (seconds since a fixed epoch start) into an
@@ -352,8 +367,11 @@ class TimeUtils {
      * @brief Convert a single value timestamp into a character string based on
      * the input strftime format string and put it into the given buffer.
      *
-     * @attention This function DOES NOT SUPPORT TIMEZONES. Do not use the %z or
-     * %Z inputs!
+     * The timestamp is formatted without applying an offset conversion, so
+     * the resulting calendar fields remain in the input timestamp's offset.
+     *
+     * @attention The UTC offset is not included in the output. Do not use the
+     * %z or %Z inputs!
      *
      * @see https://en.cppreference.com/w/cpp/chrono/c/strftime for possible
      * formatting strings.
@@ -362,29 +380,53 @@ class TimeUtils {
      * the buffer is big enough to hold all of the characters!
      * @param fmt The strftime format string.
      * @param epochSeconds The number of seconds since the start of the given
-     * epoch in the given offset from UTC.
+     * epoch in its existing offset from UTC.
      * @param epoch The epoch of the input epoch time.
      *
      * @warning This function does NOT verify that the buffer is large enough to
-     * hold the formatted string.  Make sure your buffer is large enough!
+     * hold the formatted string. The buffer must be at least 39 bytes. Prefer
+     * the overload that accepts a buffer size for smaller buffers.
      */
     static void formatDateTime(char* buffer, const char* fmt,
                                timestamp_t epochSeconds, epochStart epoch);
     /**
+     * @brief Convert a timestamp into a formatted character string using a
+     * size-checked output buffer.
+     *
+     * The timestamp is formatted without applying an offset conversion, so
+     * the resulting calendar fields remain in the input timestamp's offset.
+     *
+     * @param buffer The output buffer.
+     * @param bufferSize The total size of the output buffer in bytes.
+     * @param fmt The strftime format string.
+     * @param epochSeconds The number of seconds since the start of the given
+     * epoch in its existing offset from UTC.
+     * @param epoch The epoch of the input timestamp.
+     * @return The number of characters written, excluding the null terminator,
+     * or zero if the output did not fit or an argument was invalid.
+     */
+    static size_t formatDateTime(char* buffer, size_t bufferSize,
+                                 const char* fmt, timestamp_t epochSeconds,
+                                 epochStart epoch);
+    /**
      * @brief Convert a single value timestamp into a String object based on the
      * input strftime format string and put it into the given buffer.
      *
-     * @attention This function DOES NOT SUPPORT TIMEZONES. Do not use the %z or
-     * %Z inputs!
+     * The timestamp is formatted without applying an offset conversion, so
+     * the resulting calendar fields remain in the input timestamp's offset.
+     *
+     * @attention The UTC offset is not included in the output. Do not use the
+     * %z or %Z inputs!
      *
      * @see https://en.cppreference.com/w/cpp/chrono/c/strftime for possible
      * formatting strings.
      *
      * @param fmt The strftime format string.
      * @param epochSeconds The number of seconds since the start of the given
-     * epoch in the given offset from UTC.
+     * epoch in its existing offset from UTC.
      * @param epoch The epoch of the input epoch time.
      * @return A String object containing the formatted date and time.
+     * Returns an empty String if the formatted value exceeds 38 characters.
      */
 #if EPOCHTIME_ENABLE_STRING_FORMATTING
     static String formatDateTime(const char* fmt, timestamp_t epochSeconds,
@@ -394,8 +436,11 @@ class TimeUtils {
      * @brief Convert an epoch time into a character string based on the input
      * strftime format string and put it into the given buffer.
      *
-     * @note This function DOES NOT SUPPORT TIMEZONES. Do not use the %z or %Z
-     * inputs!
+     * The epochTime object's UTC instant is formatted in the same UTC offset
+     * that was supplied when the object was constructed.
+     *
+     * @attention The UTC offset is not included in the output. Do not use the
+     * %z or %Z inputs!
      *
      * @see https://en.cppreference.com/w/cpp/chrono/c/strftime for possible
      * formatting strings.
@@ -406,16 +451,36 @@ class TimeUtils {
      * @param in_time An epochTime object
      *
      * @warning This function does NOT verify that the buffer is large enough to
-     * hold the formatted string.  Make sure your buffer is large enough!
+     * hold the formatted string. The buffer must be at least 39 bytes. Prefer
+     * the overload that accepts a buffer size for smaller buffers.
      */
     static void formatDateTime(char* buffer, const char* fmt,
                                epochTime in_time);
     /**
+     * @brief Format an epochTime using a size-checked output buffer.
+     *
+     * The UTC instant is formatted in the same UTC offset that was supplied
+     * when the object was constructed. The offset is not included in the
+     * output; do not use the %z or %Z inputs.
+     *
+     * @param buffer The output buffer.
+     * @param bufferSize The total size of the output buffer in bytes.
+     * @param fmt The strftime format string.
+     * @param in_time The epochTime object to format.
+     * @return The number of characters written, excluding the null terminator,
+     * or zero if the output did not fit or an argument was invalid.
+     */
+    static size_t formatDateTime(char* buffer, size_t bufferSize,
+                                 const char* fmt, epochTime in_time);
+    /**
      * @brief Convert an epoch time into a String object based on the input
      * strftime format string and return it as a String object.
      *
-     * @note This function DOES NOT SUPPORT TIMEZONES. Do not use the %z or %Z
-     * inputs!
+     * The epochTime object's UTC instant is formatted in the same UTC offset
+     * that was supplied when the object was constructed.
+     *
+     * @attention The UTC offset is not included in the output. Do not use the
+     * %z or %Z inputs!
      *
      * @see https://en.cppreference.com/w/cpp/chrono/c/strftime for possible
      * formatting strings.
@@ -423,6 +488,7 @@ class TimeUtils {
      * @param fmt The strftime format string.
      * @param in_time An epochTime object
      * @return A String object containing the formatted date and time.
+     * Returns an empty String if the formatted value exceeds 38 characters.
      */
 #if EPOCHTIME_ENABLE_STRING_FORMATTING
     static String formatDateTime(const char* fmt, epochTime in_time);
