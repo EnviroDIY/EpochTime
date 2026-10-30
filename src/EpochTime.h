@@ -201,12 +201,12 @@ class epochTime {
      *
      * @param timestamp A timestamp - in seconds since the start of the
      * given epoch.
+     * @param utcOffsetSeconds The offset from UTC in seconds for the timestamp;
+     * optional, defaults to 0.
      * @param epoch The start of the epoch for the timestamp; optional, defaults
      * to Unix epoch.
-     * @param utcOffset The offset from UTC in seconds for the timestamp;
-     * optional, defaults to 0.
      */
-    explicit epochTime(timestamp_t timestamp, int32_t utcOffset = 0,
+    explicit epochTime(timestamp_t timestamp, int32_t utcOffsetSeconds = 0,
                        epochStart epoch = epochStart::unix_epoch);
 
     /**
@@ -246,17 +246,18 @@ class epochTime {
      * @brief Get a single value timestamp from an epochTime object in a
      * specific epoch and timezone.
      *
-     * @param out_utcOffset The desired UTC offset for the output, in seconds,
+     * @param out_utcOffsetSeconds The desired UTC offset for the output, in
+     * seconds,
      * optional (defaults to 0).
      * @param out_epoch The desired epoch for the output, optional (defaults to
      * Unix epoch).
      * @return The timestamp in seconds since the start of the output epoch at
      * the output offset from UTC.
-     * @note The out_utcOffset and out_epoch parameters are optional and default
-     * to 0 and Unix epoch, respectively.
+     * @note The out_utcOffsetSeconds and out_epoch parameters are optional and
+     * default to 0 and Unix epoch, respectively.
      */
-    timestamp_t getTimestamp(int32_t    out_utcOffset = 0,
-                             epochStart out_epoch     = epochStart::unix_epoch);
+    timestamp_t getTimestamp(int32_t    out_utcOffsetSeconds = 0,
+                             epochStart out_epoch = epochStart::unix_epoch);
 
  private:
     /**
@@ -442,12 +443,13 @@ class TimeUtils {
      *
      * @param ts The timestamp to check (in seconds since the start of the given
      * epoch).
-     * @param utcOffset The offset of the epoch time from UTC in hours.
+     * @param utcOffsetHours The offset of the epoch time from UTC in hours.
      * @param epoch The type of epoch to use (i.e., the standard for the start
      * of the epoch).
      * @return True if the given time passes sanity range checking.
      */
-    static bool isTimeSane(timestamp_t ts, int8_t utcOffset, epochStart epoch);
+    static bool isTimeSane(timestamp_t ts, int8_t utcOffsetHours,
+                           epochStart epoch);
     /**
      * @brief Check that a given epoch time (an epochTime object) is within a
      * "sane" range.
@@ -479,13 +481,15 @@ class TimeUtils {
      *
      * @param in_timestamp The input timestamp in seconds since the start of
      * the input epoch.
-     * @param in_utcOffset The UTC offset of the input timestamp, in seconds.
-     * @param out_utcOffset The desired UTC offset for the output, in seconds.
+     * @param in_utcOffsetSeconds The UTC offset of the input timestamp, in
+     * seconds.
+     * @param out_utcOffsetSeconds The desired UTC offset for the output, in
+     * seconds.
      * @return The timestamp in seconds since the start of the output epoch.
      */
     static timestamp_t convertTZOffset(timestamp_t in_timestamp,
-                                       int32_t     in_utcOffset,
-                                       int32_t     out_utcOffset);
+                                       int32_t     in_utcOffsetSeconds,
+                                       int32_t     out_utcOffsetSeconds);
 
     /**
      * @brief Convert a timestamp from one epoch to another with different UTC
@@ -493,16 +497,18 @@ class TimeUtils {
      *
      * @param in_timestamp The input timestamp in seconds since the start of
      * the input epoch.
-     * @param in_utcOffset The UTC offset of the input timestamp, in seconds.
+     * @param in_utcOffsetSeconds The UTC offset of the input timestamp, in
+     * seconds.
      * @param in_epoch The epoch of the input timestamp.
-     * @param out_utcOffset The desired UTC offset for the output, in seconds.
+     * @param out_utcOffsetSeconds The desired UTC offset for the output, in
+     * seconds.
      * @param out_epoch The desired epoch for the output.
      * @return The timestamp in seconds since the start of the output epoch.
      */
     static timestamp_t convertOffsetAndEpoch(timestamp_t in_timestamp,
-                                             int32_t     in_utcOffset,
+                                             int32_t     in_utcOffsetSeconds,
                                              epochStart  in_epoch,
-                                             int32_t     out_utcOffset,
+                                             int32_t     out_utcOffsetSeconds,
                                              epochStart  out_epoch);
 
     /**
@@ -510,17 +516,17 @@ class TimeUtils {
      * specific epoch and timezone.
      *
      * @param in_time An epochTime object.
-     * @param out_utcOffset The desired UTC offset for the output, in seconds,
-     * optional (defaults to 0).
+     * @param out_utcOffsetSeconds The desired UTC offset for the output, in
+     * seconds, optional (defaults to 0).
      * @param out_epoch The desired epoch for the output, optional (defaults to
      * Unix epoch).
      * @return The timestamp in seconds since the start of the output epoch at
      * the output offset from UTC.
-     * @note The out_utcOffset and out_epoch parameters are optional and default
-     * to 0 and Unix epoch, respectively.
+     * @note The out_utcOffsetSeconds and out_epoch parameters are optional and
+     * default to 0 and Unix epoch, respectively.
      */
     static timestamp_t getTimestamp(
-        epochTime in_time, int32_t out_utcOffset = 0,
+        epochTime in_time, int32_t out_utcOffsetSeconds = 0,
         epochStart out_epoch = epochStart::unix_epoch);
 
     /**
@@ -542,12 +548,14 @@ class TimeUtils {
      *
      * @param in_timestamp The input timestamp in seconds since the start of
      * the input epoch.
-     * @param in_utcOffset The UTC offset of the input timestamp, in seconds.
+     * @param in_utcOffsetSeconds The UTC offset of the input timestamp, in
+     * seconds.
      * @param in_epoch The epoch of the input timestamp.
      * @return The corresponding time_t value.
      */
-    static time_t getTimeT(timestamp_t in_timestamp, int32_t in_utcOffset = 0,
-                           epochStart in_epoch = epochStart::unix_epoch);
+    static time_t getTimeT(timestamp_t in_timestamp,
+                           int32_t     in_utcOffsetSeconds = 0,
+                           epochStart  in_epoch = epochStart::unix_epoch);
 
     /**
      * @brief Convert a tm struct to a fully populated epochTime object.
@@ -587,12 +595,14 @@ class TimeUtils {
      *
      * @param in_timestamp The input timestamp in seconds since the start of
      * the input epoch.
-     * @param in_utcOffset The UTC offset of the input timestamp, in seconds.
+     * @param in_utcOffsetSeconds The UTC offset of the input timestamp, in
+     * seconds.
      * @param in_epoch The epoch of the input timestamp.
      * @param timeParts The tm structure to store the converted calendar time.
      */
-    static void fillTimeParts(timestamp_t in_timestamp, int32_t in_utcOffset,
-                              epochStart in_epoch, tm& timeParts);
+    static void fillTimeParts(timestamp_t in_timestamp,
+                              int32_t in_utcOffsetSeconds, epochStart in_epoch,
+                              tm& timeParts);
 
     /**
      * @brief Compare the calendar fields of two tm values.
@@ -645,7 +655,7 @@ class TimeUtils {
      */
     static int32_t getCoreTimeZone() {
         _ensureInitialized();
-        return TimeUtils::_core_tz;
+        return TimeUtils::_coreUtcOffsetSeconds;
     }
 
  protected:
@@ -692,7 +702,7 @@ class TimeUtils {
      * @brief The timezone used by the processor core's internal time.h library,
      * in seconds from UTC.
      */
-    static int32_t _core_tz;
+    static int32_t _coreUtcOffsetSeconds;
 
     /**
      * @brief Flag to track whether initialization has been performed.
