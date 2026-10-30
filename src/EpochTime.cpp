@@ -256,15 +256,14 @@ timestamp_t TimeUtils::getTimestamp(epochTime  in_time,
 }
 
 time_t TimeUtils::getTimeT(epochTime in_time) {
-    return static_cast<time_t>(getTimestamp(
-        in_time, TimeUtils::getCoreTimeZone(), TimeUtils::getCoreEpochStart()));
+    return static_cast<time_t>(
+        getTimestamp(in_time, 0, TimeUtils::getCoreEpochStart()));
 }
 
 time_t TimeUtils::getTimeT(timestamp_t in_timestamp,
                            int32_t in_utcOffsetSeconds, epochStart in_epoch) {
     return static_cast<time_t>(TimeUtils::convertOffsetAndEpoch(
-        in_timestamp, in_utcOffsetSeconds, in_epoch,
-        TimeUtils::getCoreTimeZone(), TimeUtils::getCoreEpochStart()));
+        in_timestamp, in_utcOffsetSeconds, in_epoch, 0,
         TimeUtils::getCoreEpochStart()));
 }
 
