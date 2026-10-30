@@ -160,7 +160,11 @@ void TimeUtils::formatDateTime(char* buffer, const char* fmt,
 
 size_t TimeUtils::formatDateTime(char* buffer, size_t bufferSize,
                                  const char* fmt, epochTime in_time) {
-    if (buffer == nullptr || bufferSize == 0 || fmt == nullptr) { return 0; }
+    if (buffer == nullptr || bufferSize == 0) { return 0; }
+    if (fmt == nullptr) {
+        buffer[0] = '\0';
+        return 0;
+    }
 
     _ensureInitialized();
     // Get a single number timestamp representing the input time in the
