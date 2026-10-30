@@ -179,7 +179,9 @@ String TimeUtils::printEpochStart(epochStart epoch) {
 
 bool TimeUtils::isTimeSane(timestamp_t ts, int8_t utcOffsetHours,
                            epochStart epoch) {
-    return isTimeSane(epochTime(ts, utcOffsetHours, epoch));
+    const int32_t utcOffsetSeconds = static_cast<int32_t>(utcOffsetHours) *
+        3600L;
+    return isTimeSane(epochTime(ts, utcOffsetSeconds, epoch));
 }
 bool TimeUtils::isTimeSane(epochTime in_time) {
     _ensureInitialized();
