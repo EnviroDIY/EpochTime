@@ -162,7 +162,7 @@ String TimeUtils::printEpochStart(epochStart epoch) {
     switch (epoch) {
         case epochStart::unix_epoch: return "1970-01-01T00:00:00Z";
         case epochStart::y2k_epoch: return "2000-01-01T00:00:00Z";
-        case epochStart::gps_epoch: return "1980-01-05T00:00:00Z";
+        case epochStart::gps_epoch: return "1980-01-06T00:00:00Z";
         case epochStart::nist_epoch: return "1900-01-01T00:00:00Z";
         default: return "UNKNOWN";
     }

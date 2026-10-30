@@ -88,7 +88,7 @@ static_assert(EARLIEST_SANE_UNIX_TIMESTAMP < LATEST_SANE_UNIX_TIMESTAMP,
 #endif
 #ifndef EPOCH_UNIX_TO_GPS
 /**
- * @brief The GPS epoch starting Jan 5, 1980 (was 315964800s ahead of UNIX epoch
+ * @brief The GPS epoch starting Jan 6, 1980 (was 315964800s ahead of UNIX epoch
  * at founding, has drifted farther apart due to leap seconds)
  */
 #define EPOCH_UNIX_TO_GPS 315964800
@@ -161,7 +161,7 @@ enum class epochStart : timestamp_t {
                             ///< some RTC's and Arduinos do (946684800s
                             ///< ahead of UNIX epoch)
     gps_epoch = EPOCH_NIST_TO_UNIX +
-        EPOCH_UNIX_TO_GPS,  ///< Use the GPS epoch starting Jan 5, 1980
+        EPOCH_UNIX_TO_GPS,  ///< Use the GPS epoch starting Jan 6, 1980
                             ///< (was 315964800s ahead of UNIX epoch at
                             ///< founding, has drifted farther apart due
                             ///< to leap seconds)
