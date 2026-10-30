@@ -291,6 +291,14 @@ timestamp_t TimeUtils::convertOffsetAndEpoch(timestamp_t in_timestamp,
                                              epochStart  out_epoch) {
     return convertTZOffset(convertEpoch(in_timestamp, in_epoch, out_epoch),
                            in_utcOffsetSeconds, out_utcOffsetSeconds);
+#if 0
+// @todo Is it safe to just convert the epoch first and then apply the timezone offset all in one function as above?
+    const timestamp_t utcTimestamp = convertTZOffset(in_timestamp,
+                                                     in_utcOffsetSeconds, 0);
+    const timestamp_t convertedTimestamp = convertEpoch(utcTimestamp, in_epoch,
+                                                        out_epoch);
+    return convertTZOffset(convertedTimestamp, 0, out_utcOffsetSeconds);
+#endif
 }
 
 timestamp_t TimeUtils::getTimestamp(epochTime  in_time,
