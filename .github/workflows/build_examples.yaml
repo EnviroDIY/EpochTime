@@ -26,5 +26,5 @@ jobs:
     if: ${{ ! contains(github.event.head_commit.message, 'ci skip') }}
     uses: EnviroDIY/workflows/.github/workflows/build_examples.yaml@main
     with:
-      examples_to_build: "examples/TimeFormatting"
+      examples_to_build: "examples/TimeFormatting,extras/FormattingTests"
     secrets: inherit
