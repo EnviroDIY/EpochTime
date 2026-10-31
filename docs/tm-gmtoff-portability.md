@@ -122,5 +122,4 @@ or explicitly convert the offset with the EpochTime conversion functions.
 - [NetBSD `mktime()` implementation](https://raw.githubusercontent.com/NetBSD/src/trunk/lib/libc/time/localtime.c)
 - [FreeBSD tzcode updates](https://cgit.freebsd.org/src/log/contrib/tzcode)
 
-
 <!-- cSpell:ignore gmtoff mktime isdst newlib LOCALAPPDATA picolibc libc  -->
