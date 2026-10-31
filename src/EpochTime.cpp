@@ -194,7 +194,7 @@ size_t TimeUtils::formatDateTime(char* buffer, size_t bufferSize,
     // The return of strftime is inconsistent.  The expected POSIX behavior is
     // to return 0 if the buffer is to small, but the Arduino core may simply
     // truncate the output without indicating an error.
-    char temp[max(40, bufferSize)] = {};
+    char temp[64] = {};
     // use strftime (from time.h) to format the time
     size_t length = strftime(temp, sizeof(temp), fmt, tmp);
 
@@ -431,7 +431,8 @@ bool TimeUtils::sameTime(const tm& a, const tm& b) {
     // epoch. The tm_wday and tm_yday values are overwritten with correct values
     // after computation; we copied the input tm structs to preserve the
     // originals.
-    if (mktime(&aCopy) == -1 || mktime(&bCopy) == -1) {
+    if (mktime(&aCopy) == static_cast<time_t>(-1) ||
+        mktime(&bCopy) == static_cast<time_t>(-1)) {
         // If either timestamp could not be compiled, we cannot safely compare
         // them.
         return false;

@@ -153,6 +153,11 @@ void testOffsetAndEpochConversions() {
     CHECK_EQUAL("equal instants compare equal", 1, localTime == indiaTime);
     CHECK_EQUAL("different instants compare unequal", 1,
                 localTime != epochTime(unixUtc + 1));
+    CHECK_EQUAL("timezone offset conversion", unixUtc + indiaOffset,
+                TimeUtils::convertTZOffset(unixUtc, 0, indiaOffset));
+    CHECK_EQUAL("utility timestamp conversion", unixUtc + indiaOffset,
+                TimeUtils::getTimestamp(localTime, indiaOffset,
+                                        epochStart::unix_epoch));
 
     const timestamp_t y2k = unixUtc - EPOCH_UNIX_TO_Y2K;
     CHECK_EQUAL("Unix to Y2K", y2k,
@@ -201,6 +206,16 @@ void testFormattingAndSanity() {
     CHECK_STRING("ISO conversion crosses into UTC-12",
                  "2026-06-30T12:00:00-12:00", buffer);
 
+#if EPOCHTIME_ENABLE_STRING_FORMATTING
+    String rawISO = TimeUtils::formatISO8601(
+        local, -5, epochStart::unix_epoch);
+    CHECK_STRING("raw ISO String overload", "2026-06-30T19:00:00-05:00",
+                 rawISO.c_str());
+    String objectISO = TimeUtils::formatISO8601(localTime, 14);
+    CHECK_STRING("epochTime ISO String overload",
+                 "2026-07-01T14:00:00+14:00", objectISO.c_str());
+#endif
+
     TimeUtils::formatISO8601(buffer, static_cast<timestamp_t>(1709251199LL), 0,
                              epochStart::unix_epoch);
     CHECK_STRING("leap-day final second formats correctly",
@@ -211,11 +226,20 @@ void testFormattingAndSanity() {
                  "2025-12-31T23:59:59+00:00", buffer);
 
 #if EPOCHTIME_ENABLE_STRFTIME
+    TimeUtils::formatDateTime(buffer, "%Y-%m-%d %H:%M:%S", localTime);
+    CHECK_STRING("epochTime unchecked-buffer formatter",
+                 "2026-06-30 19:00:00", buffer);
     CHECK_EQUAL("custom formatter reports its length", 19,
                 TimeUtils::formatDateTime(buffer, sizeof(buffer),
                                           "%Y-%m-%d %H:%M:%S", localTime));
     CHECK_STRING("custom formatter retains a negative offset",
                  "2026-06-30 19:00:00", buffer);
+#if EPOCHTIME_ENABLE_STRING_FORMATTING
+    String objectDateTime =
+        TimeUtils::formatDateTime("%Y-%m-%d %H:%M:%S", localTime);
+    CHECK_STRING("epochTime String formatter", "2026-06-30 19:00:00",
+                 objectDateTime.c_str());
+#endif
 
     const int32_t indiaOffset = 5 * 3600L + 30 * 60L;
     epochTime     indiaTime(unixUtc + indiaOffset, indiaOffset,
@@ -225,12 +249,22 @@ void testFormattingAndSanity() {
     CHECK_STRING("custom formatter retains a half-hour offset",
                  "2026-07-01 05:30:00", buffer);
 
+    TimeUtils::formatDateTime(buffer, "%Y-%m-%d %H:%M:%S", local,
+                              epochStart::unix_epoch);
+    CHECK_STRING("raw unchecked-buffer formatter", "2026-06-30 19:00:00",
+                 buffer);
     CHECK_EQUAL("raw custom formatter reports its length", 19,
                 TimeUtils::formatDateTime(buffer, sizeof(buffer),
                                           "%Y-%m-%d %H:%M:%S", local,
                                           epochStart::unix_epoch));
     CHECK_STRING("raw custom formatter retains calendar fields",
                  "2026-06-30 19:00:00", buffer);
+#if EPOCHTIME_ENABLE_STRING_FORMATTING
+    String rawDateTime = TimeUtils::formatDateTime(
+        "%Y-%m-%d %H:%M:%S", local, epochStart::unix_epoch);
+    CHECK_STRING("raw String formatter", "2026-06-30 19:00:00",
+                 rawDateTime.c_str());
+#endif
 
     char smallBuffer[8] = {'x', 'x', 'x', 'x', 'x', 'x', 'x', '\0'};
     CHECK_EQUAL("small format buffer reports failure", 0,
@@ -258,6 +292,27 @@ void testFormattingAndSanity() {
                 TimeUtils::isTimeSane(
                     static_cast<timestamp_t>(LATEST_SANE_UNIX_TIMESTAMP) + 1, 0,
                     epochStart::unix_epoch));
+    CHECK_EQUAL("epochTime sanity overload", 1,
+                TimeUtils::isTimeSane(epochTime(unixUtc)));
+
+#if EPOCHTIME_ENABLE_STRING_FORMATTING
+    CHECK_STRING("Unix epoch name", "Unix",
+                 TimeUtils::printEpochName(epochStart::unix_epoch).c_str());
+    CHECK_STRING("Y2K epoch name", "Y2K",
+                 TimeUtils::printEpochName(epochStart::y2k_epoch).c_str());
+    CHECK_STRING("GPS epoch name", "GPS",
+                 TimeUtils::printEpochName(epochStart::gps_epoch).c_str());
+    CHECK_STRING("NIST epoch name", "NIST",
+                 TimeUtils::printEpochName(epochStart::nist_epoch).c_str());
+    CHECK_STRING("Unix epoch start", "1970-01-01T00:00:00Z",
+                 TimeUtils::printEpochStart(epochStart::unix_epoch).c_str());
+    CHECK_STRING("Y2K epoch start", "2000-01-01T00:00:00Z",
+                 TimeUtils::printEpochStart(epochStart::y2k_epoch).c_str());
+    CHECK_STRING("GPS epoch start", "1980-01-06T00:00:00Z",
+                 TimeUtils::printEpochStart(epochStart::gps_epoch).c_str());
+    CHECK_STRING("NIST epoch start", "1900-01-01T00:00:00Z",
+                 TimeUtils::printEpochStart(epochStart::nist_epoch).c_str());
+#endif
 }
 
 void testCoreTimeAndTmConversions() {
@@ -389,6 +444,8 @@ void printCoreDetails() {
 void setup() {
     Serial.begin(115200);
     while (!Serial) { delay(10); }
+
+    TimeUtils::begin();
 
     Serial.println();
     Serial.println(F("========================================"));

@@ -84,6 +84,16 @@ void testOffsetAndEpochConversions() {
     CHECK_EQUAL("positive half-hour offset retains local representation",
                 unixUtc + istUtcOffsetSeconds,
                 indiaTime.getTimestamp(istUtcOffsetSeconds));
+    CHECK_EQUAL("equal instants compare equal", 1, localTime == indiaTime);
+    CHECK_EQUAL("different instants compare unequal", 1,
+                localTime != epochTime(unixUtc + 1));
+    CHECK_EQUAL("timezone offset conversion", unixUtc + istUtcOffsetSeconds,
+                TimeUtils::convertTZOffset(unixUtc, 0,
+                                           istUtcOffsetSeconds));
+    CHECK_EQUAL("utility timestamp conversion",
+                unixUtc + istUtcOffsetSeconds,
+                TimeUtils::getTimestamp(localTime, istUtcOffsetSeconds,
+                                        epochStart::unix_epoch));
 
     const timestamp_t y2k = unixUtc - EPOCH_UNIX_TO_Y2K;
     CHECK_EQUAL("Unix to Y2K", y2k,
@@ -124,7 +134,13 @@ void testFormattingAndSanity() {
     char buffer[40] = {};
     TimeUtils::formatISO8601(buffer, local, -5, epochStart::unix_epoch);
     CHECK_STRING("raw ISO offset units", "2026-06-30T19:00:00-05:00", buffer);
+    TimeUtils::formatISO8601(buffer, localTime, 14);
+    CHECK_STRING("epochTime ISO conversion", "2026-07-01T14:00:00+14:00",
+                 buffer);
 
+    TimeUtils::formatDateTime(buffer, "%Y-%m-%d %H:%M:%S", localTime);
+    CHECK_STRING("epochTime unchecked-buffer formatter",
+                 "2026-06-30 19:00:00", buffer);
     CHECK_EQUAL("safe custom formatter length", 19,
                 TimeUtils::formatDateTime(buffer, sizeof(buffer),
                                           "%Y-%m-%d %H:%M:%S", localTime));
@@ -139,6 +155,10 @@ void testFormattingAndSanity() {
     CHECK_STRING("positive half-hour formatter offset", "2026-07-01 05:30:00",
                  buffer);
 
+    TimeUtils::formatDateTime(buffer, "%Y-%m-%d %H:%M:%S", local,
+                              epochStart::unix_epoch);
+    CHECK_STRING("raw unchecked-buffer formatter", "2026-06-30 19:00:00",
+                 buffer);
     CHECK_EQUAL("raw custom formatter length", 19,
                 TimeUtils::formatDateTime(buffer, sizeof(buffer),
                                           "%Y-%m-%d %H:%M:%S", local,
@@ -161,6 +181,8 @@ void testFormattingAndSanity() {
     CHECK_EQUAL(
         "one second before sane range", 0,
         TimeUtils::isTimeSane(earliestLocal - 1, -5, epochStart::unix_epoch));
+    CHECK_EQUAL("epochTime sanity overload", 1,
+                TimeUtils::isTimeSane(epochTime(unixUtc)));
 }
 
 void testCoreTimeAndTmConversions() {
@@ -242,6 +264,7 @@ void testWideGpsTimestamps() {
 
 int main() {
     configureTestTimezone();
+    TimeUtils::begin();
     testOffsetAndEpochConversions();
     testFormattingAndSanity();
     testCoreTimeAndTmConversions();
