@@ -689,7 +689,8 @@ class TimeUtils {
     static epochTime tmToEpochTime(tm timeParts);
 
     /**
-     * @brief Convert a fully-defined epochTime to a tm struct.
+     * @brief Convert a fully-defined epochTime to a tm struct with all time
+     * parts in UTC.
      *
      * @param in_time An epochTime object.
      * @param timeParts The tm structure to store the converted calendar time.
@@ -697,7 +698,7 @@ class TimeUtils {
     static void fillTimeParts(epochTime in_time, tm& timeParts);
 
     /**
-     * @brief Convert a timestamp to a tm struct.
+     * @brief Convert a timestamp to a tm struct with all time parts in UTC.
      *
      * @param in_timestamp The input timestamp in seconds since the start of
      * the input epoch.

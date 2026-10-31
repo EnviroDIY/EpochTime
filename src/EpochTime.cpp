@@ -10,6 +10,7 @@
 #include "EpochTime.h"
 
 #include <limits.h>
+#include <cstring>
 
 // Initialize the array for the leap seconds - taken from the defines
 const uint32_t TimeUtils::leapSeconds[NUMBER_LEAP_SECONDS] = LEAP_SECONDS;
@@ -170,7 +171,7 @@ size_t TimeUtils::formatDateTime(char* buffer, size_t bufferSize,
     // Get a single number timestamp representing the input time in the
     // processor core's epoch and the processor's UTC offset.
     time_t t = static_cast<time_t>(TimeUtils::getTimestamp(
-        in_time, TimeUtils::_coreUtcOffsetSeconds, TimeUtils::_core_epoch));
+        in_time, in_time._utcOffsetSeconds, TimeUtils::_core_epoch));
 
     // Now use gmtime() to get the broken-down UTC time corresponding to the
     // adjusted timestamp.   The gmtime function expects the time_t to be in UTC
@@ -190,9 +191,20 @@ size_t TimeUtils::formatDateTime(char* buffer, size_t bufferSize,
     }
 
     // use strftime (from time.h) to format the time
-    const size_t length = strftime(buffer, bufferSize, fmt, tmp);
-    if (length == 0) { buffer[0] = '\0'; }
-    return length;
+    char   temp[64] = {};
+    size_t length   = strftime(temp, sizeof(temp), fmt, tmp);
+
+    // Normalize implementations that return strlen+1.
+    const size_t actualLength = strlen(temp);
+    if ((length != actualLength && length != actualLength + 1) ||
+        actualLength == 0 || actualLength >= bufferSize) {
+        buffer[0] = '\0';
+        return 0;
+    }
+
+    strncpy(buffer, temp, bufferSize);
+    buffer[bufferSize - 1] = '\0';  // Ensure null-termination
+    return actualLength;
 }
 #if EPOCHTIME_ENABLE_STRING_FORMATTING
 String TimeUtils::formatDateTime(const char* fmt, epochTime in_time) {
@@ -369,6 +381,11 @@ void TimeUtils::fillTimeParts(epochTime in_time, tm& timeParts) {
     // without doing any time-zone conversion.  The gmtime_r function treats the
     // input as UTC and gives an output in UTC.
     gmtime_r(&gmtimeTime, &timeParts);
+
+#ifdef __TM_GMTOFF
+    // A UTC tm should report UTC.
+    timeParts.__TM_GMTOFF = 0;
+#endif
 }
 
 void TimeUtils::fillTimeParts(timestamp_t in_timestamp,
@@ -386,6 +403,10 @@ void TimeUtils::fillTimeParts(timestamp_t in_timestamp,
     // without doing any time-zone conversion.  The gmtime_r function treats the
     // input as UTC and gives an output in UTC.
     gmtime_r(&gmtimeTime, &timeParts);
+
+#ifdef __TM_GMTOFF
+    timeParts.__TM_GMTOFF = 0;
+#endif
 }
 
 bool TimeUtils::sameTime(const tm& a, const tm& b) {
@@ -573,4 +594,4 @@ timestamp_t TimeUtils::gps2unix(timestamp_t gpsTime) {
     return unixTime - nLeaps;
 }
 
-// cSpell:words
+// cSpell:ignore
