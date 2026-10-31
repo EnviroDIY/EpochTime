@@ -17,9 +17,9 @@
 
 // set a value for the time
 // Wednesday, July 1, 2026 at 12:00:00 AM GMT, in the Unix epoch
-time_t     myTimestamp = 1782864000;
-uint32_t   myOffset    = 0;  // UTC offset in seconds (0 for GMT)
-epochStart myEpoch     = epochStart::unix_epoch;  // Use Unix epoch
+time_t     myTimestamp        = 1782864000;
+int32_t    myUtcOffsetSeconds = 0;  // UTC offset in seconds (0 for GMT)
+epochStart myEpoch            = epochStart::unix_epoch;  // Use Unix epoch
 
 String tmToArrayString(const tm& timeStruct) {
     String retStr;
@@ -112,7 +112,7 @@ void setup() {
     Serial.print(F("Input Timestamp: "));
     Serial.println(static_cast<uint32_t>(myTimestamp));
     Serial.print(F("Input Offset from UTC in Seconds: "));
-    Serial.println(myOffset);
+    Serial.println(myUtcOffsetSeconds);
     Serial.print("Input Epoch: ");
     Serial.print(TimeUtils::printEpochName(myEpoch));
     Serial.print(" (start: ");
@@ -122,7 +122,8 @@ void setup() {
     // Convert the timestamp to a timestamp with a different epoch and offset
     // convention
     // Convert to GMT-5 (Eastern Standard Time) without changing the epoch
-    time_t tsEST = TimeUtils::convertTZOffset(myTimestamp, myOffset, -5 * 3600);
+    time_t tsEST = TimeUtils::convertTZOffset(myTimestamp, myUtcOffsetSeconds,
+                                              -5 * 3600);
     Serial.print(F("Converted Timestamp (GMT-5): "));
     Serial.println(static_cast<uint32_t>(tsEST));
     // Convert to Y2K epoch without changing the timezone
@@ -133,12 +134,13 @@ void setup() {
     // Change both the timezone and epoch to GMT-5 (Eastern Standard Time) in
     // the Y2K epoch
     time_t ts_EST_Y2K = TimeUtils::convertOffsetAndEpoch(
-        myTimestamp, myOffset, myEpoch, -5 * 3600, epochStart::y2k_epoch);
+        myTimestamp, myUtcOffsetSeconds, myEpoch, -5 * 3600,
+        epochStart::y2k_epoch);
     Serial.print(F("Converted Timestamp (GMT-5, Y2K): "));
     Serial.println(static_cast<uint32_t>(ts_EST_Y2K));
 
     // Create an epochTime object
-    epochTime myEpochTime(myTimestamp, myOffset, myEpoch);
+    epochTime myEpochTime(myTimestamp, myUtcOffsetSeconds, myEpoch);
     // Get a single value timestamp in the Y2K epoch with a GMT-5 offset
     time_t ts_EST_Y2K_2 = TimeUtils::getTimestamp(myEpochTime, -5 * 3600,
                                                   epochStart::y2k_epoch);
@@ -259,7 +261,7 @@ void setup() {
     Serial.print(tmToArrayString(myTM2));
     Serial.print(F(" are "));
     Serial.println(TimeUtils::sameTime(myTM1, myTM2) ? "equal" : "NOT equal");
-#if defined(__TM_GMTOFF) || defined(__TM_ZONE)
+#ifdef __TM_GMTOFF
     Serial.println(F("\tThey should be equal since the processing takes the "
                      "timezone into account."));
 #else
@@ -317,8 +319,10 @@ void setup() {
 
     // Convert a time_t object and into a tm structure
     tm     convertedTM   = {};
-    time_t convertedTime = TimeUtils::getTimeT(myTimestamp, myOffset, myEpoch);
-    TimeUtils::fillTimeParts(myTimestamp, myOffset, myEpoch, convertedTM);
+    time_t convertedTime = TimeUtils::getTimeT(myTimestamp, myUtcOffsetSeconds,
+                                               myEpoch);
+    TimeUtils::fillTimeParts(myTimestamp, myUtcOffsetSeconds, myEpoch,
+                             convertedTM);
     Serial.print(F("Timestamp: "));
     Serial.print(static_cast<uint32_t>(myTimestamp));
     Serial.print(F(" time_t: "));
@@ -328,8 +332,10 @@ void setup() {
 
     tm convertedTM2 = {};
     // 1647354630 = Tuesday, March 15, 2022 at 2:30:30 PM
-    time_t convertedTime2 = TimeUtils::getTimeT(1647354630, myOffset, myEpoch);
-    TimeUtils::fillTimeParts(1647354630, myOffset, myEpoch, convertedTM2);
+    time_t convertedTime2 = TimeUtils::getTimeT(1647354630, myUtcOffsetSeconds,
+                                                myEpoch);
+    TimeUtils::fillTimeParts(1647354630, myUtcOffsetSeconds, myEpoch,
+                             convertedTM2);
     Serial.print(F("Timestamp: "));
     Serial.print(static_cast<uint32_t>(1647354630));
     Serial.print(F(" time_t: "));
@@ -346,14 +352,15 @@ void setup() {
     Serial.println(TimeUtils::formatISO8601(myEpochTime, -5));
     Serial.print(F("ISO 8601, input timezone, from a single timestamp (assumes "
                    "input and output are in the same timezone): "));
-    Serial.println(TimeUtils::formatISO8601(myTimestamp, myOffset, myEpoch));
+    Serial.println(TimeUtils::formatISO8601(
+        myTimestamp, static_cast<int8_t>(myUtcOffsetSeconds / 3600), myEpoch));
 #if EPOCHTIME_ENABLE_STRFTIME
-    Serial.print(
-        F("Custom Format, from a epochTime object (timezone IGNORED): "));
+    Serial.print(F("Custom Format, from an epochTime object (input offset "
+                   "preserved): "));
     Serial.println(
         TimeUtils::formatDateTime("%A, %B %d, %Y %H:%M:%S", myEpochTime));
-    Serial.print(
-        F("Custom Format, from a single timestamp (timezone IGNORED): "));
+    Serial.print(F("Custom Format, from a single timestamp (input offset "
+                   "preserved): "));
     Serial.println(TimeUtils::formatDateTime("%A, %B %d, %Y %H:%M:%S",
                                              myTimestamp, myEpoch));
 #endif
@@ -362,7 +369,9 @@ void setup() {
     Serial.println(F("\n\nTime Sanity Checking Example"));
     Serial.println(F("-----------------------"));
     Serial.println(F("Is the timestamp sane? "));
-    Serial.println(TimeUtils::isTimeSane(myTimestamp, myOffset, myEpoch)
+    Serial.println(TimeUtils::isTimeSane(
+                       myTimestamp,
+                       static_cast<int8_t>(myUtcOffsetSeconds / 3600), myEpoch)
                        ? F("Yes")
                        : F("No"));
     Serial.println(F("Is the epochTime sane? "));

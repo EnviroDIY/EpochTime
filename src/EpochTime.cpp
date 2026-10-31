@@ -9,26 +9,32 @@
  */
 #include "EpochTime.h"
 
+#include <limits.h>
+
 // Initialize the array for the leap seconds - taken from the defines
 const uint32_t TimeUtils::leapSeconds[NUMBER_LEAP_SECONDS] = LEAP_SECONDS;
 
 // Initialize the processor epoch
 epochStart TimeUtils::_core_epoch = epochStart::y2k_epoch;
 // Initialize the processor timezone offset
-int32_t TimeUtils::_core_tz = 0;
+int32_t TimeUtils::_coreUtcOffsetSeconds = 0;
 // Initialize the flag tracking initialization state
 bool TimeUtils::_initialized = false;
 
 
-epochTime::epochTime(timestamp_t timestamp, int32_t utcOffset,
+epochTime::epochTime(timestamp_t timestamp, int32_t utcOffsetSeconds,
                      epochStart epoch) {
+    // Convert the input timestamp from the input epoch and offset to Unix with
+    // 0 offset and store that
     _unixUTCTimestamp = TimeUtils::convertOffsetAndEpoch(
-        timestamp, utcOffset, epoch, 0, epochStart::unix_epoch);
+        timestamp, utcOffsetSeconds, epoch, 0, epochStart::unix_epoch);
+    // Also store the original UTC offset for later use
+    _utcOffsetSeconds = utcOffsetSeconds;
 }
 
-timestamp_t epochTime::getTimestamp(int32_t    out_utcOffset,
+timestamp_t epochTime::getTimestamp(int32_t    out_utcOffsetSeconds,
                                     epochStart out_epoch) {
-    return TimeUtils::getTimestamp(*this, out_utcOffset, out_epoch);
+    return TimeUtils::getTimestamp(*this, out_utcOffsetSeconds, out_epoch);
 }
 
 // Format an epoch time as ISO8601 without using strftime(), snprintf(), or
@@ -36,14 +42,23 @@ timestamp_t epochTime::getTimestamp(int32_t    out_utcOffset,
 void TimeUtils::formatISO8601(char* buffer, epochTime in_time,
                               int8_t utcOffsetHours) {
     _ensureInitialized();
+    // convert the offset in hours to an offset in seconds
+    const int32_t outputUtcOffsetSeconds =
+        static_cast<int32_t>(utcOffsetHours) * 3600L;
+    // Get a single number timestamp representing the input time in the
+    // processor core's epoch and the requested output offset before using
+    // gmtime().  The gmtime function expects the time_t to be in UTC and
+    // returns a tm struct representing UTC time; the important point being
+    // that gmtime does not apply any timezone offset to the input time.   So if
+    // we want the final time to be in a different offset, apply that offset
+    // first ands gmtime() will be none-the-wiser about the offset.
+    // NOTE: gmtime requires a true time_t (in whatever size the core uses) as
+    // input!
+    time_t t = static_cast<time_t>(TimeUtils::getTimestamp(
+        in_time, outputUtcOffsetSeconds, TimeUtils::_core_epoch));
 
-    // Convert to the processor core's epoch/timezone before using gmtime().
-    timestamp_t t_core = TimeUtils::getTimestamp(in_time, TimeUtils::_core_tz,
-                                                 TimeUtils::_core_epoch);
-    time_t      t      = static_cast<time_t>(TimeUtils::convertTZOffset(
-        t_core, TimeUtils::_core_tz,
-        static_cast<time_t>(utcOffsetHours) * 3600L));
-
+    // Now use gmtime_r() to get the broken-down UTC time corresponding to the
+    // adjusted timestamp.
     tm timeParts;
     gmtime_r(&t, &timeParts);
 
@@ -77,29 +92,40 @@ void TimeUtils::formatISO8601(char* buffer, epochTime in_time,
 
     // The public API currently accepts whole-hour offsets. Keep the output
     // construction explicit rather than invoking printf-family formatting.
-    int16_t offsetMinutes = static_cast<int16_t>(utcOffsetHours) * 60;
-    char    sign          = '+';
-    if (offsetMinutes < 0) {
-        sign          = '-';
-        offsetMinutes = -offsetMinutes;
+    int16_t utcOffsetMinutes = static_cast<int16_t>(utcOffsetHours) * 60;
+    char    sign             = '+';
+    if (utcOffsetMinutes < 0) {
+        sign             = '-';
+        utcOffsetMinutes = -utcOffsetMinutes;
     }
-    const uint8_t offsetHours = static_cast<uint8_t>(offsetMinutes / 60);
-    const uint8_t offsetMins  = static_cast<uint8_t>(offsetMinutes % 60);
+    const uint8_t absoluteUtcOffsetHours =
+        static_cast<uint8_t>(utcOffsetMinutes / 60);
+    const uint8_t remainingUtcOffsetMinutes =
+        static_cast<uint8_t>(utcOffsetMinutes % 60);
 
     buffer[19] = sign;
-    buffer[20] = static_cast<char>('0' + offsetHours / 10);
-    buffer[21] = static_cast<char>('0' + offsetHours % 10);
+    buffer[20] = static_cast<char>('0' + absoluteUtcOffsetHours / 10);
+    buffer[21] = static_cast<char>('0' + absoluteUtcOffsetHours % 10);
     buffer[22] = ':';
-    buffer[23] = static_cast<char>('0' + offsetMins / 10);
-    buffer[24] = static_cast<char>('0' + offsetMins % 10);
+    buffer[23] = static_cast<char>('0' + remainingUtcOffsetMinutes / 10);
+    buffer[24] = static_cast<char>('0' + remainingUtcOffsetMinutes % 10);
     buffer[25] = '\0';
+}
+
+void TimeUtils::formatISO8601(char* buffer, timestamp_t epochSeconds,
+                              int8_t utcOffsetHours, epochStart epoch) {
+    const int32_t utcOffsetSeconds = static_cast<int32_t>(utcOffsetHours) *
+        3600L;
+    formatISO8601(buffer, epochTime(epochSeconds, utcOffsetSeconds, epoch),
+                  utcOffsetHours);
 }
 
 #if EPOCHTIME_ENABLE_STRING_FORMATTING
 String TimeUtils::formatISO8601(timestamp_t epochSeconds, int8_t utcOffsetHours,
                                 epochStart epoch) {
-    return formatISO8601(epochTime(epochSeconds, utcOffsetHours, epoch),
-                         utcOffsetHours);
+    char buffer[26];
+    formatISO8601(buffer, epochSeconds, utcOffsetHours, epoch);
+    return String(buffer);
 }
 
 String TimeUtils::formatISO8601(epochTime in_time, int8_t utcOffsetHours) {
@@ -112,7 +138,14 @@ String TimeUtils::formatISO8601(epochTime in_time, int8_t utcOffsetHours) {
 #if EPOCHTIME_ENABLE_STRFTIME
 void TimeUtils::formatDateTime(char* buffer, const char* fmt,
                                timestamp_t epochSeconds, epochStart epoch) {
-    formatDateTime(buffer, fmt, epochTime(epochSeconds, 0, epoch));
+    formatDateTime(buffer, 39, fmt, epochTime(epochSeconds, 0, epoch));
+}
+
+size_t TimeUtils::formatDateTime(char* buffer, size_t bufferSize,
+                                 const char* fmt, timestamp_t epochSeconds,
+                                 epochStart epoch) {
+    return formatDateTime(buffer, bufferSize, fmt,
+                          epochTime(epochSeconds, 0, epoch));
 }
 #if EPOCHTIME_ENABLE_STRING_FORMATTING
 String TimeUtils::formatDateTime(const char* fmt, timestamp_t epochSeconds,
@@ -122,26 +155,69 @@ String TimeUtils::formatDateTime(const char* fmt, timestamp_t epochSeconds,
 #endif
 void TimeUtils::formatDateTime(char* buffer, const char* fmt,
                                epochTime in_time) {
+    formatDateTime(buffer, 39, fmt, in_time);
+}
+
+size_t TimeUtils::formatDateTime(char* buffer, size_t bufferSize,
+                                 const char* fmt, epochTime in_time) {
+    if (buffer == nullptr || bufferSize == 0) { return 0; }
+    if (fmt == nullptr) {
+        buffer[0] = '\0';
+        return 0;
+    }
+
     _ensureInitialized();
-    // Get a single-value timestamp for the input epochTime object in the epoch
-    // used by the processor core (i.e., used by gmtime).
-    time_t t = TimeUtils::getTimestamp(in_time, TimeUtils::_core_tz,
-                                       TimeUtils::_core_epoch);
+    // Get a single number timestamp representing the input time in the
+    // processor core's epoch and the processor's UTC offset.
+    time_t t = static_cast<time_t>(TimeUtils::getTimestamp(
+        in_time, in_time._utcOffsetSeconds, TimeUtils::_core_epoch));
 
-    // create a temporary time struct
-    // tm is a struct for time parts, defined in time.h
-    // NOTE: gmtime requires a true time_t as input!
+    // Now use gmtime() to get the broken-down UTC time corresponding to the
+    // adjusted timestamp.   The gmtime function expects the time_t to be in UTC
+    // and returns a tm struct representing UTC time - the important point being
+    // that gmtime does not apply any timezone offset to the input time. BUT,
+    // we're not giving gmtime() UTC here, we're giving it local time, although
+    // its none-the-wiser.  This means that the output tm struct will represent
+    // the local time corresponding to the adjusted timestamp and any formatting
+    // done with strftime that expects the input to be in local time will work
+    // correctly.
+    // NOTE: gmtime requires a true time_t (in whatever size the core uses) as
+    // input!
     tm* tmp = gmtime(&t);
+    if (tmp == nullptr) {
+        buffer[0] = '\0';
+        return 0;
+    }
 
+    // create a temporary buffer to format into
+    // We use the temporary buffer to guard against a buffer that is too small.
+    // The return of strftime is inconsistent.  The expected POSIX behavior is
+    // to return 0 if the buffer is to small, but the Arduino core may simply
+    // truncate the output without indicating an error.
+    char temp[64] = {};
     // use strftime (from time.h) to format the time
-    strftime(buffer, 39, fmt, tmp);
+    size_t length = strftime(temp, sizeof(temp), fmt, tmp);
+
+    // Normalize implementations that return strlen+1.
+    const size_t actualLength = strlen(temp);
+    if ((length != actualLength && length != actualLength + 1) ||
+        actualLength == 0 || actualLength >= bufferSize) {
+        buffer[0] = '\0';
+        return 0;
+    }
+
+    strncpy(buffer, temp, bufferSize);
+    buffer[bufferSize - 1] = '\0';  // Ensure null-termination
+    return actualLength;
 }
 #if EPOCHTIME_ENABLE_STRING_FORMATTING
 String TimeUtils::formatDateTime(const char* fmt, epochTime in_time) {
     // 38+1 for the longest common English format:
     // Wednesday, September 30, 2026 23:59:59
-    char buffer[39];
-    formatDateTime(buffer, fmt, in_time);
+    char buffer[39] = {};
+    if (formatDateTime(buffer, sizeof(buffer), fmt, in_time) == 0) {
+        return String();
+    }
     return String(buffer);
 }
 #endif
@@ -162,15 +238,18 @@ String TimeUtils::printEpochStart(epochStart epoch) {
     switch (epoch) {
         case epochStart::unix_epoch: return "1970-01-01T00:00:00Z";
         case epochStart::y2k_epoch: return "2000-01-01T00:00:00Z";
-        case epochStart::gps_epoch: return "1980-01-05T00:00:00Z";
+        case epochStart::gps_epoch: return "1980-01-06T00:00:00Z";
         case epochStart::nist_epoch: return "1900-01-01T00:00:00Z";
         default: return "UNKNOWN";
     }
 }
 #endif
 
-bool TimeUtils::isTimeSane(timestamp_t ts, int8_t utcOffset, epochStart epoch) {
-    return isTimeSane(epochTime(ts, utcOffset, epoch));
+bool TimeUtils::isTimeSane(timestamp_t ts, int8_t utcOffsetHours,
+                           epochStart epoch) {
+    const int32_t utcOffsetSeconds = static_cast<int32_t>(utcOffsetHours) *
+        3600L;
+    return isTimeSane(epochTime(ts, utcOffsetSeconds, epoch));
 }
 bool TimeUtils::isTimeSane(epochTime in_time) {
     _ensureInitialized();
@@ -222,53 +301,75 @@ timestamp_t TimeUtils::convertEpoch(timestamp_t in_timestamp,
 }
 
 timestamp_t TimeUtils::convertTZOffset(timestamp_t in_timestamp,
-                                       int32_t     in_utcOffset,
-                                       int32_t     out_utcOffset) {
-    return in_timestamp + (out_utcOffset - in_utcOffset);
+                                       int32_t     in_utcOffsetSeconds,
+                                       int32_t     out_utcOffsetSeconds) {
+    return in_timestamp + (out_utcOffsetSeconds - in_utcOffsetSeconds);
 }
 
 timestamp_t TimeUtils::convertOffsetAndEpoch(timestamp_t in_timestamp,
-                                             int32_t     in_utcOffset,
+                                             int32_t     in_utcOffsetSeconds,
                                              epochStart  in_epoch,
-                                             int32_t     out_utcOffset,
+                                             int32_t     out_utcOffsetSeconds,
                                              epochStart  out_epoch) {
-    return convertTZOffset(convertEpoch(in_timestamp, in_epoch, out_epoch),
-                           in_utcOffset, out_utcOffset);
+    // First convert to UTC timestamp, then convert between epochs, and finally
+    // apply the output timezone offset. If we convert the epoch in the local
+    // time zone first, the conversion to the GPS epoch could be incorrect due
+    // to the offset screwing up the leap seconds.
+    const timestamp_t utcTimestamp = convertTZOffset(in_timestamp,
+                                                     in_utcOffsetSeconds, 0);
+    const timestamp_t convertedTimestamp = convertEpoch(utcTimestamp, in_epoch,
+                                                        out_epoch);
+    return convertTZOffset(convertedTimestamp, 0, out_utcOffsetSeconds);
 }
 
-timestamp_t TimeUtils::getTimestamp(epochTime in_time, int32_t out_utcOffset,
+timestamp_t TimeUtils::getTimestamp(epochTime  in_time,
+                                    int32_t    out_utcOffsetSeconds,
                                     epochStart out_epoch) {
     return convertOffsetAndEpoch(in_time._unixUTCTimestamp, 0,
-                                 epochStart::unix_epoch, out_utcOffset,
+                                 epochStart::unix_epoch, out_utcOffsetSeconds,
                                  out_epoch);
 }
 
 time_t TimeUtils::getTimeT(epochTime in_time) {
-    return static_cast<time_t>(getTimestamp(
-        in_time, TimeUtils::getCoreTimeZone(), TimeUtils::getCoreEpochStart()));
+    return static_cast<time_t>(
+        getTimestamp(in_time, 0, TimeUtils::getCoreEpochStart()));
 }
 
-time_t TimeUtils::getTimeT(timestamp_t in_timestamp, int32_t in_utcOffset,
-                           epochStart in_epoch) {
+time_t TimeUtils::getTimeT(timestamp_t in_timestamp,
+                           int32_t in_utcOffsetSeconds, epochStart in_epoch) {
     return static_cast<time_t>(TimeUtils::convertOffsetAndEpoch(
-        in_timestamp, in_utcOffset, in_epoch, TimeUtils::getCoreTimeZone(),
+        in_timestamp, in_utcOffsetSeconds, in_epoch, 0,
         TimeUtils::getCoreEpochStart()));
 }
 
 epochTime TimeUtils::tmToEpochTime(tm timeParts) {
     _ensureInitialized();
-    // convert the time parts from the tm struct into an timestamp_t
-    // the mktime function will return a time_t which represents the time in the
-    // **processor's epoch** and the **processor's local time** converting from
-    // the timezone (if any) given in the time parts to that processor local
-    // zone.
+#ifdef __TM_GMTOFF
+    // Preserve the input offset as formatting metadata, but do not let mktime
+    // use it to adjust or disambiguate the compiled timestamp.  LONG_MAX is not
+    // a valid UTC offset, so implementations that optionally inspect this field
+    // cannot treat it as an offset for the input calendar fields.
+    const int32_t inputUtcOffsetSeconds =
+        static_cast<int32_t>(timeParts.__TM_GMTOFF);
+    timeParts.__TM_GMTOFF = LONG_MAX;
+#endif
+    // Convert the standard calendar fields using the processor's local
+    // timezone. The saved __TM_GMTOFF value is not part of this conversion.
     time_t t = mktime(&timeParts);
     // cast into a timestamp_t
     timestamp_t ts = static_cast<timestamp_t>(t);
-    // Convert the timestamp_t to an epochTime object using the known
-    // processor's timezone and epoch start
-    return epochTime(ts, TimeUtils::getCoreTimeZone(),
-                     TimeUtils::getCoreEpochStart());
+
+    // Create an epochTime object from the timestamp, knowing that the timestamp
+    // we just got from mktime is using the core epoch and 0 offset
+    epochTime result(ts, 0, TimeUtils::_core_epoch);
+#ifdef __TM_GMTOFF
+    // Store the original UTC offset only for later formatting.
+    result._utcOffsetSeconds = inputUtcOffsetSeconds;
+#endif
+    // NOTE: We **intentionally** do not keep the
+    // TimeUtils::_coreUtcOffsetSeconds as the _utcOffsetSeconds of the
+    // epochTime object.
+    return result;
 }
 
 void TimeUtils::fillTimeParts(epochTime in_time, tm& timeParts) {
@@ -277,37 +378,72 @@ void TimeUtils::fillTimeParts(epochTime in_time, tm& timeParts) {
     timestamp_t coreTime = TimeUtils::convertEpoch(
         static_cast<timestamp_t>(in_time._unixUTCTimestamp),
         epochStart::unix_epoch, TimeUtils::getCoreEpochStart());
-    // cast back from timestamp_t to time_t
+    // cast back from timestamp_t to time_t; gmtime requires a true time_t (in
+    // whatever size the core uses) as input!
     time_t gmtimeTime = static_cast<time_t>(coreTime);
-    // converts the time stamp pointed to by gmtimeTime into broken-down time,
-    // expressed as UTC
+    // convert the time stamp pointed to by gmtimeTime into broken-down time,
+    // without doing any time-zone conversion.  The gmtime_r function treats the
+    // input as UTC and gives an output in UTC.
     gmtime_r(&gmtimeTime, &timeParts);
+
+#ifdef __TM_GMTOFF
+    // A UTC tm should report UTC.
+    timeParts.__TM_GMTOFF = 0;
+#endif
 }
 
-void TimeUtils::fillTimeParts(timestamp_t in_timestamp, int32_t in_utcOffset,
-                              epochStart in_epoch, tm& timeParts) {
+void TimeUtils::fillTimeParts(timestamp_t in_timestamp,
+                              int32_t in_utcOffsetSeconds, epochStart in_epoch,
+                              tm& timeParts) {
     _ensureInitialized();
-    // Get a timestamp in the processor's epoch and UTC timezone
-    timestamp_t coreTime =
-        TimeUtils::convertOffsetAndEpoch(in_timestamp, in_utcOffset, in_epoch,
-                                         0, TimeUtils::getCoreEpochStart());
-    // cast back from timestamp_t to time_t
+    // Convert the input timestamp to the processor's epoch and UTC timezone
+    timestamp_t coreTime = TimeUtils::convertOffsetAndEpoch(
+        in_timestamp, in_utcOffsetSeconds, in_epoch, 0,
+        TimeUtils::getCoreEpochStart());
+    // cast back from timestamp_t to time_t; gmtime requires a true time_t (in
+    // whatever size the core uses) as input!
     time_t gmtimeTime = static_cast<time_t>(coreTime);
-    // converts the time stamp pointed to by gmtimeTime into broken-down time,
-    // expressed as UTC
+    // convert the time stamp pointed to by gmtimeTime into broken-down time,
+    // without doing any time-zone conversion.  The gmtime_r function treats the
+    // input as UTC and gives an output in UTC.
     gmtime_r(&gmtimeTime, &timeParts);
+
+#ifdef __TM_GMTOFF
+    timeParts.__TM_GMTOFF = 0;
+#endif
 }
 
 bool TimeUtils::sameTime(const tm& a, const tm& b) {
-    return a.tm_sec == b.tm_sec && a.tm_min == b.tm_min &&
-        a.tm_hour == b.tm_hour && a.tm_mday == b.tm_mday &&
-        a.tm_mon == b.tm_mon && a.tm_year == b.tm_year;
+    // make copies of the input tm structs so the originals are not modified by
+    // mktime
+    tm aCopy = a;
+    tm bCopy = b;
+#ifdef __TM_GMTOFF
+    // UTC-offset fields are formatting metadata and must not affect the
+    // timestamps compiled for comparison.
+    aCopy.__TM_GMTOFF = LONG_MAX;
+    bCopy.__TM_GMTOFF = LONG_MAX;
+#endif
+    // compare the compiled timestamps returned by mktime
+    // NOTE: mktime() normalizes the given fields to valid ranges, applies the
+    // local timezone (via tzset()), and uses tm_sec, tm_min, tm_hour, tm_mday,
+    // tm_mon, tm_year, and tm_isdst to calculate the total seconds since the
+    // epoch. The tm_wday and tm_yday values are overwritten with correct values
+    // after computation; we copied the input tm structs to preserve the
+    // originals.
+    if (mktime(&aCopy) == static_cast<time_t>(-1) ||
+        mktime(&bCopy) == static_cast<time_t>(-1)) {
+        // If either timestamp could not be compiled, we cannot safely compare
+        // them.
+        return false;
+    }
+    return mktime(&aCopy) == mktime(&bCopy);
 }
 
 void TimeUtils::begin() {
     if (TimeUtils::_initialized) { return; }
     getProcessorEpochStart();  // Sets _core_epoch internally
-    getProcessorTimeZone();    // Sets _core_tz internally
+    getProcessorTimeZone();    // Sets _coreUtcOffsetSeconds internally
     TimeUtils::_initialized = true;
 }
 
@@ -317,7 +453,7 @@ void TimeUtils::_ensureInitialized() {
 
 // Figure out when the epoch used by time_t starts for the processor.  The
 // tm_year member of a tm struct is the number of years since 1900, per C/C++
-// standard, but while time_t always contains a number of seconds since Some
+// standard, but while time_t always contains a number of seconds since some
 // epoch start, when the epoch starts, and the integer size of the time_t vary
 // by Arduino cores and platforms.
 epochStart TimeUtils::getProcessorEpochStart() {
@@ -325,6 +461,9 @@ epochStart TimeUtils::getProcessorEpochStart() {
     time_t epoch_zero = 0;
     // Use the core library to convert the time_t value into a tm struct.
     // The tm_year member is the number of years since 1900, per C/C++ standard.
+    // The gmtime function converts a time_t value - in UTC - into a tm struct
+    // representing UTC time.  The gmtime function does **not** do any timezone
+    // conversions - it assumes the start and end point are in UTC.
     tm* epoch_zero_tm = gmtime(&epoch_zero);
     // If conversion failed, default to Unix epoch.
     if (epoch_zero_tm == nullptr) {
@@ -346,13 +485,17 @@ epochStart TimeUtils::getProcessorEpochStart() {
 
 // This is yet another awkward function, but time support varies across device
 // cores and I'm not sure if there is a better way to get the timezone offset
-// that the processor/core considers "local time".  We need to know this because
-// the mktime function converts the input time to the number of seconds since
-// the epoch in the processor's timezone. The UTC version of the function
-// (timegm(&timeParts)) is not available on all platforms, and I have no idea
-// how to consistently set or detect the timezone across platforms, so instead
-// we will just use mktime and then compare the returned timestamp to the known
-// epoch start to figure out the offset.
+// that the processor/core considers "local time". mktime interprets its input
+// fields as local time and returns the corresponding time_t in UTC.  That is,
+// mktime **converts** the input to UTC based on the processor's local timezone.
+// A conversionless version that assumes the input is already in UTC and returns
+// UTC (ie, timegm(&timeParts) or mk_gmtime(const struct tm * timeptr)) is not
+// available on all platforms.  Because we need to use mktime to compile time
+// structs into timestamps, we need to know what conversion mktime is applying.
+// I have no idea how to consistently set or detect the timezone across
+// platforms, so instead we compare mktime's result for a known local calendar
+// time to that instant in the detected core epoch.  Thankfully, we only have to
+// do this once when we 'initialize.'
 int32_t TimeUtils::getProcessorTimeZone() {
     // Create a time struct for Jan 1, 2000 at 00:00:00 in the processor's epoch
     tm timeParts;
@@ -369,7 +512,7 @@ int32_t TimeUtils::getProcessorTimeZone() {
 
     // Check for mktime failure
     if (timeTimeT == (timestamp_t)-1) {
-        TimeUtils::_core_tz = 0;
+        TimeUtils::_coreUtcOffsetSeconds = 0;
         return 0;
     }
 
@@ -387,40 +530,43 @@ int32_t TimeUtils::getProcessorTimeZone() {
     // function.
     // Handle both signed and unsigned time_t properly
     // Check if time_t is signed by testing if (time_t)-1 < (time_t)0
-    int32_t        tz_offset;
+    int32_t        coreUtcOffsetSeconds;
     constexpr bool is_time_t_signed = ((timestamp_t)-1 < (timestamp_t)0);
 
     if (is_time_t_signed) {
         // For signed time_t, negative values are represented normally
         if (timeY2K >= -static_cast<timestamp_t>(SECONDS_IN_DAY) &&
             timeY2K <= static_cast<timestamp_t>(SECONDS_IN_DAY)) {
-            tz_offset = static_cast<int32_t>(timeY2K);
+            coreUtcOffsetSeconds = -static_cast<int32_t>(timeY2K);
         } else {
-            tz_offset = 0;  // Outside reasonable timezone range (±24 hours)
+            coreUtcOffsetSeconds =
+                0;  // Outside reasonable timezone range (±24 hours)
         }
     } else {
         // For unsigned time_t, check for wraparound indicating negative values
         if (timeY2K <= SECONDS_IN_DAY) {
-            // Positive offset or zero
-            tz_offset = static_cast<int32_t>(timeY2K);
+            // A positive mktime delta represents a negative UTC offset.
+            coreUtcOffsetSeconds = -static_cast<int32_t>(timeY2K);
         } else {
             // Check if this looks like a wrapped negative value
             const timestamp_t max_unsigned = (timestamp_t)-1;
             if (timeY2K > (max_unsigned - SECONDS_IN_DAY)) {
                 // This is likely a wrapped negative offset
-                timestamp_t offsetMagnitude = max_unsigned - timeY2K + 1;
-                tz_offset = -static_cast<int32_t>(offsetMagnitude);
+                timestamp_t utcOffsetMagnitudeSeconds = max_unsigned - timeY2K +
+                    1;
+                coreUtcOffsetSeconds =
+                    static_cast<int32_t>(utcOffsetMagnitudeSeconds);
             } else {
-                tz_offset = 0;  // Outside reasonable timezone range
+                coreUtcOffsetSeconds = 0;  // Outside reasonable timezone range
             }
         }
     }
-    TimeUtils::_core_tz = tz_offset;
-    return tz_offset;
+    TimeUtils::_coreUtcOffsetSeconds = coreUtcOffsetSeconds;
+    return coreUtcOffsetSeconds;
 }
 
 // Test to see if a GPS second is a leap second.
-bool TimeUtils::isLeap(uint32_t gpsTime) {
+bool TimeUtils::isLeap(timestamp_t gpsTime) {
     for (uint8_t i = 0; i < NUMBER_LEAP_SECONDS; ++i) {
         if (gpsTime == leapSeconds[i]) { return true; }
         if (gpsTime < leapSeconds[i]) { return false; }
@@ -429,10 +575,10 @@ bool TimeUtils::isLeap(uint32_t gpsTime) {
 }
 
 // Count number of leap seconds that have passed.
-int8_t TimeUtils::countLeaps(uint32_t gpsTime, bool unix2gps) {
+int8_t TimeUtils::countLeaps(timestamp_t gpsTime, bool unix2gps) {
     int8_t nLeaps = 0;
     for (uint8_t i = 0; i < NUMBER_LEAP_SECONDS; ++i) {
-        const uint32_t leap = unix2gps ? leapSeconds[i] - i : leapSeconds[i];
+        const timestamp_t leap = unix2gps ? leapSeconds[i] - i : leapSeconds[i];
         if (gpsTime < leap) { break; }
         ++nLeaps;
     }
@@ -453,4 +599,4 @@ timestamp_t TimeUtils::gps2unix(timestamp_t gpsTime) {
     return unixTime - nLeaps;
 }
 
-// cSpell:words
+// cSpell:ignore

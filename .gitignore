@@ -91,7 +91,6 @@ compile_commands.json
 pioScripts/*
 variants/*
 boards/*
-tests/*
 lib/*
 platformio_extra_envs.ini
 pio_common_libdeps.ini
