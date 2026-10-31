@@ -10,7 +10,6 @@
 #include "EpochTime.h"
 
 #include <limits.h>
-#include <cstring>
 
 // Initialize the array for the leap seconds - taken from the defines
 const uint32_t TimeUtils::leapSeconds[NUMBER_LEAP_SECONDS] = LEAP_SECONDS;

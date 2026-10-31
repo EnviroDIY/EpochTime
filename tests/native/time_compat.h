@@ -2,6 +2,7 @@
 #define TESTS_NATIVE_TIME_COMPAT_H_
 
 #include <time.h>
+#include <cstring>
 
 #ifdef _WIN32
 /**
