@@ -189,9 +189,14 @@ size_t TimeUtils::formatDateTime(char* buffer, size_t bufferSize,
         return 0;
     }
 
+    // create a temporary buffer to format into
+    // We use the temporary buffer to guard against a buffer that is too small.
+    // The return of strftime is inconsistent.  The expected POSIX behavior is
+    // to return 0 if the buffer is to small, but the Arduino core may simply
+    // truncate the output without indicating an error.
+    char temp[max(40, bufferSize)] = {};
     // use strftime (from time.h) to format the time
-    char   temp[64] = {};
-    size_t length   = strftime(temp, sizeof(temp), fmt, tmp);
+    size_t length = strftime(temp, sizeof(temp), fmt, tmp);
 
     // Normalize implementations that return strlen+1.
     const size_t actualLength = strlen(temp);

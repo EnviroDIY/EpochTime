@@ -386,6 +386,8 @@ class TimeUtils {
      * @warning This function does NOT verify that the buffer is large enough to
      * hold the formatted string. The buffer must be at least 39 bytes. Prefer
      * the overload that accepts a buffer size for smaller buffers.
+     *
+     * @note Available only if `EPOCHTIME_ENABLE_STRFTIME` is defined.
      */
     static void formatDateTime(char* buffer, const char* fmt,
                                timestamp_t epochSeconds, epochStart epoch);
@@ -404,10 +406,13 @@ class TimeUtils {
      * @param epoch The epoch of the input timestamp.
      * @return The number of characters written, excluding the null terminator,
      * or zero if the output did not fit or an argument was invalid.
+     *
+     * @note Available only if `EPOCHTIME_ENABLE_STRFTIME` is defined.
      */
     static size_t formatDateTime(char* buffer, size_t bufferSize,
                                  const char* fmt, timestamp_t epochSeconds,
                                  epochStart epoch);
+#if EPOCHTIME_ENABLE_STRING_FORMATTING
     /**
      * @brief Convert a single value timestamp into a String object based on the
      * input strftime format string and put it into the given buffer.
@@ -427,8 +432,10 @@ class TimeUtils {
      * @param epoch The epoch of the input epoch time.
      * @return A String object containing the formatted date and time.
      * Returns an empty String if the formatted value exceeds 38 characters.
+     *
+     * @note Available only if both `EPOCHTIME_ENABLE_STRING_FORMATTING` and
+     * `EPOCHTIME_ENABLE_STRFTIME` are defined.
      */
-#if EPOCHTIME_ENABLE_STRING_FORMATTING
     static String formatDateTime(const char* fmt, timestamp_t epochSeconds,
                                  epochStart epoch);
 #endif
@@ -453,6 +460,8 @@ class TimeUtils {
      * @warning This function does NOT verify that the buffer is large enough to
      * hold the formatted string. The buffer must be at least 39 bytes. Prefer
      * the overload that accepts a buffer size for smaller buffers.
+     *
+     * @note Available only if `EPOCHTIME_ENABLE_STRFTIME` is defined.
      */
     static void formatDateTime(char* buffer, const char* fmt,
                                epochTime in_time);
@@ -469,9 +478,12 @@ class TimeUtils {
      * @param in_time The epochTime object to format.
      * @return The number of characters written, excluding the null terminator,
      * or zero if the output did not fit or an argument was invalid.
+     *
+     * @note Available only if `EPOCHTIME_ENABLE_STRFTIME` is defined.
      */
     static size_t formatDateTime(char* buffer, size_t bufferSize,
                                  const char* fmt, epochTime in_time);
+#if EPOCHTIME_ENABLE_STRING_FORMATTING
     /**
      * @brief Convert an epoch time into a String object based on the input
      * strftime format string and return it as a String object.
@@ -489,8 +501,10 @@ class TimeUtils {
      * @param in_time An epochTime object
      * @return A String object containing the formatted date and time.
      * Returns an empty String if the formatted value exceeds 38 characters.
+     *
+     * @note Available only if both `EPOCHTIME_ENABLE_STRING_FORMATTING` and
+     * `EPOCHTIME_ENABLE_STRFTIME` are defined.
      */
-#if EPOCHTIME_ENABLE_STRING_FORMATTING
     static String formatDateTime(const char* fmt, epochTime in_time);
 #endif
 
@@ -501,12 +515,16 @@ class TimeUtils {
      * @brief Gets a string name for the epoch.
      * @param epoch The epoch to get the name of
      * @return The name for the epoch
+     * @note Available only if `EPOCHTIME_ENABLE_STRING_FORMATTING` is defined.
+     * (This is true by default.)
      */
     static String printEpochName(epochStart epoch);
     /**
      * @brief Gets a string for the start date of the epoch.
      * @param epoch The epoch to get the name of
      * @return The starting date, in ISO8601
+     * @note Available only if `EPOCHTIME_ENABLE_STRING_FORMATTING` is defined.
+     * (This is true by default.)
      */
     static String printEpochStart(epochStart epoch);
 #endif
