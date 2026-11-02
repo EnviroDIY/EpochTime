@@ -13,9 +13,12 @@ inspect `tm_gmtoff` from treating it as a valid UTC offset or timezone-transitio
 hint. `mktime()` therefore interprets the standard calendar fields and
 `tm_isdst` using the processor core's local timezone.
 
-`TimeUtils::sameTime()` follows the same policy. It compares the timestamps
-compiled from the standard calendar fields and `tm_isdst`, while deliberately
-excluding `tm_gmtoff`. The original input structures are not modified.
+`TimeUtils::sameTime()` compares `tm_sec`, `tm_min`, `tm_hour`, `tm_mday`,
+`tm_mon`, and `tm_year` directly, without normalization or timezone conversion.
+The `tm_isdst` values must both be non-negative and equal; if either value is
+negative, the structures are not comparable and the function returns false.
+The function deliberately excludes `tm_gmtoff`, `tm_wday`, and `tm_yday`, and
+does not modify the input structures.
 
 If `__TM_GMTOFF` is unavailable, EpochTime stores a formatting offset of zero.
 

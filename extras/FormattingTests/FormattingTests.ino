@@ -227,16 +227,15 @@ void testFormattingAndSanity() {
 
 #if EPOCHTIME_ENABLE_STRFTIME
     TimeUtils::formatDateTime(buffer, "%Y-%m-%d %H:%M:%S", localTime);
-    CHECK_STRING("epochTime unchecked-buffer formatter",
-                 "2026-06-30 19:00:00", buffer);
-    CHECK_EQUAL("custom formatter reports its length", 19,
-                TimeUtils::formatDateTime(buffer, sizeof(buffer),
-                                          "%Y-%m-%d %H:%M:%S", localTime));
+    CHECK_STRING("epochTime unchecked-buffer formatter", "2026-06-30 19:00:00",
+                 buffer);
+    TimeUtils::formatDateTime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S",
+                              localTime);
     CHECK_STRING("custom formatter retains a negative offset",
                  "2026-06-30 19:00:00", buffer);
 #if EPOCHTIME_ENABLE_STRING_FORMATTING
-    String objectDateTime =
-        TimeUtils::formatDateTime("%Y-%m-%d %H:%M:%S", localTime);
+    String objectDateTime = TimeUtils::formatDateTime("%Y-%m-%d %H:%M:%S",
+                                                      localTime);
     CHECK_STRING("epochTime String formatter", "2026-06-30 19:00:00",
                  objectDateTime.c_str());
 #endif
@@ -253,24 +252,29 @@ void testFormattingAndSanity() {
                               epochStart::unix_epoch);
     CHECK_STRING("raw unchecked-buffer formatter", "2026-06-30 19:00:00",
                  buffer);
-    CHECK_EQUAL("raw custom formatter reports its length", 19,
-                TimeUtils::formatDateTime(buffer, sizeof(buffer),
-                                          "%Y-%m-%d %H:%M:%S", local,
-                                          epochStart::unix_epoch));
+    TimeUtils::formatDateTime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S",
+                              local, epochStart::unix_epoch);
     CHECK_STRING("raw custom formatter retains calendar fields",
                  "2026-06-30 19:00:00", buffer);
 #if EPOCHTIME_ENABLE_STRING_FORMATTING
-    String rawDateTime = TimeUtils::formatDateTime(
-        "%Y-%m-%d %H:%M:%S", local, epochStart::unix_epoch);
+    String rawDateTime = TimeUtils::formatDateTime("%Y-%m-%d %H:%M:%S", local,
+                                                   epochStart::unix_epoch);
     CHECK_STRING("raw String formatter", "2026-06-30 19:00:00",
                  rawDateTime.c_str());
 #endif
 
     char smallBuffer[8] = {'x', 'x', 'x', 'x', 'x', 'x', 'x', '\0'};
-    CHECK_EQUAL("small format buffer reports failure", 0,
-                TimeUtils::formatDateTime(smallBuffer, sizeof(smallBuffer),
-                                          "%Y-%m-%d", localTime));
-    CHECK_EQUAL("small format buffer is cleared", 0, smallBuffer[0]);
+    TimeUtils::formatDateTime(smallBuffer, sizeof(smallBuffer), "%Y-%m-%d",
+                              localTime);
+    CHECK_EQUAL("small format buffer is null-terminated", 0,
+                smallBuffer[sizeof(smallBuffer) - 1]);
+
+    const char longFormat[] = "123456789012345678901234567890123456789012345678"
+                              "9012345678901234567890";
+    char longBuffer[sizeof(longFormat)] = {};
+    TimeUtils::formatDateTime(longBuffer, sizeof(longBuffer), longFormat,
+                              localTime);
+    CHECK_STRING("long custom formatter output", longFormat, longBuffer);
 #else
     skip(F("custom date/time formatting"),
          F("EPOCHTIME_ENABLE_STRFTIME is disabled"));
@@ -389,6 +393,28 @@ void testCoreTimeAndTmConversions() {
     sameB.tm_yday = 200;
     CHECK_EQUAL("weekday and year-day tm fields are ignored", 1,
                 TimeUtils::sameTime(sameA, sameB));
+
+    tm differentField     = sameA;
+    differentField.tm_sec = 1;
+    CHECK_EQUAL("different calendar fields compare unequal", 0,
+                TimeUtils::sameTime(sameA, differentField));
+
+    tm daylightA       = sameA;
+    daylightA.tm_isdst = 1;
+    tm daylightB       = daylightA;
+    CHECK_EQUAL("equal non-negative DST fields compare equal", 1,
+                TimeUtils::sameTime(daylightA, daylightB));
+    CHECK_EQUAL("different non-negative DST fields compare unequal", 0,
+                TimeUtils::sameTime(sameA, daylightA));
+
+    tm unknownDst       = sameA;
+    unknownDst.tm_isdst = -1;
+    CHECK_EQUAL("unknown first DST field is incomparable", 0,
+                TimeUtils::sameTime(unknownDst, sameA));
+    CHECK_EQUAL("unknown second DST field is incomparable", 0,
+                TimeUtils::sameTime(sameA, unknownDst));
+    CHECK_EQUAL("two unknown DST fields are incomparable", 0,
+                TimeUtils::sameTime(unknownDst, unknownDst));
 
 #ifdef __TM_GMTOFF
     tm sameOffsetMetadata          = sameA;

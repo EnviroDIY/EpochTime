@@ -9,7 +9,6 @@
  */
 #include "EpochTime.h"
 
-#include <errno.h>
 #include <limits.h>
 
 // Initialize the array for the leap seconds - taken from the defines
@@ -190,26 +189,11 @@ size_t TimeUtils::formatDateTime(char* buffer, size_t bufferSize,
         return 0;
     }
 
-    // create a temporary buffer to format into
-    // We use the temporary buffer to guard against a buffer that is too small.
-    // The return of strftime is inconsistent.  The expected POSIX behavior is
-    // to return 0 if the buffer is to small, but the Arduino core may simply
-    // truncate the output without indicating an error.
-    char temp[64] = {};
     // use strftime (from time.h) to format the time
-    size_t length = strftime(temp, sizeof(temp), fmt, tmp);
-
-    // Normalize implementations that return strlen+1.
-    const size_t actualLength = strlen(temp);
-    if ((length != actualLength && length != actualLength + 1) ||
-        actualLength == 0 || actualLength >= bufferSize) {
-        buffer[0] = '\0';
-        return 0;
-    }
-
-    strncpy(buffer, temp, bufferSize);
-    buffer[bufferSize - 1] = '\0';  // Ensure null-termination
-    return actualLength;
+    const size_t length = strftime(buffer, bufferSize, fmt, tmp);
+    if (length == 0) { buffer[0] = '\0'; }
+    buffer[bufferSize - 1] = '\0';
+    return length;
 }
 #if EPOCHTIME_ENABLE_STRING_FORMATTING
 String TimeUtils::formatDateTime(const char* fmt, epochTime in_time) {
@@ -415,37 +399,11 @@ void TimeUtils::fillTimeParts(timestamp_t in_timestamp,
 }
 
 bool TimeUtils::sameTime(const tm& a, const tm& b) {
-    // make copies of the input tm structs so the originals are not modified by
-    // mktime
-    tm aCopy = a;
-    tm bCopy = b;
-#ifdef __TM_GMTOFF
-    // UTC-offset fields are formatting metadata and must not affect the
-    // timestamps compiled for comparison.
-    aCopy.__TM_GMTOFF = LONG_MAX;
-    bCopy.__TM_GMTOFF = LONG_MAX;
-#endif
-    // compare the compiled timestamps returned by mktime
-    // NOTE: mktime() normalizes the given fields to valid ranges, applies the
-    // local timezone (via tzset()), and uses tm_sec, tm_min, tm_hour, tm_mday,
-    // tm_mon, tm_year, and tm_isdst to calculate the total seconds since the
-    // epoch. The tm_wday and tm_yday values are overwritten with correct values
-    // after computation; we copied the input tm structs to preserve the
-    // originals.
-    errno                   = 0;
-    const time_t aTimestamp = mktime(&aCopy);
-    const bool   aFailed = aTimestamp == static_cast<time_t>(-1) && errno != 0;
-
-    errno                   = 0;
-    const time_t bTimestamp = mktime(&bCopy);
-    const bool   bFailed = bTimestamp == static_cast<time_t>(-1) && errno != 0;
-
-    if (aFailed || bFailed) {
-        // If either timestamp could not be compiled, we cannot safely compare
-        // them.
-        return false;
-    }
-    return aTimestamp == bTimestamp;
+    if (a.tm_isdst < 0 || b.tm_isdst < 0) { return false; }
+    return a.tm_sec == b.tm_sec && a.tm_min == b.tm_min &&
+        a.tm_hour == b.tm_hour && a.tm_mday == b.tm_mday &&
+        a.tm_mon == b.tm_mon && a.tm_year == b.tm_year &&
+        a.tm_isdst == b.tm_isdst;
 }
 
 void TimeUtils::begin() {

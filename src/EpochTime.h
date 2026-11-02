@@ -383,9 +383,10 @@ class TimeUtils {
      * epoch in its existing offset from UTC.
      * @param epoch The epoch of the input epoch time.
      *
-     * @warning This function does NOT verify that the buffer is large enough to
-     * hold the formatted string. The buffer must be at least 39 bytes. Prefer
-     * the overload that accepts a buffer size for smaller buffers.
+     * @warning This function uses a fixed 39-byte output capacity, so the
+     * buffer must be at least 39 bytes and no more than 38 characters can be
+     * written. Truncation behavior varies among processor cores. Prefer the
+     * overload that accepts a buffer size.
      *
      * @note Available only if `EPOCHTIME_ENABLE_STRFTIME` is defined.
      */
@@ -393,7 +394,7 @@ class TimeUtils {
                                timestamp_t epochSeconds, epochStart epoch);
     /**
      * @brief Convert a timestamp into a formatted character string using a
-     * size-checked output buffer.
+     * size-bounded output buffer.
      *
      * The timestamp is formatted without applying an offset conversion, so
      * the resulting calendar fields remain in the input timestamp's offset.
@@ -404,8 +405,15 @@ class TimeUtils {
      * @param epochSeconds The number of seconds since the start of the given
      * epoch in its existing offset from UTC.
      * @param epoch The epoch of the input timestamp.
-     * @return The number of characters written, excluding the null terminator,
-     * or zero if the output did not fit or an argument was invalid.
+     * @return The value returned by the processor core's strftime()
+     * implementation, or zero if an argument was invalid.
+     *
+     * @warning The output is limited to bufferSize bytes and is always null
+     * terminated, but truncation reporting varies among processor cores.
+     * Conforming strftime() implementations return zero when the output does
+     * not fit. Some Arduino cores instead return a nonzero value after
+     * truncating the output, so this return value cannot portably prove that
+     * the complete output was written.
      *
      * @note Available only if `EPOCHTIME_ENABLE_STRFTIME` is defined.
      */
@@ -430,8 +438,10 @@ class TimeUtils {
      * @param epochSeconds The number of seconds since the start of the given
      * epoch in its existing offset from UTC.
      * @param epoch The epoch of the input epoch time.
-     * @return A String object containing the formatted date and time.
-     * Returns an empty String if the formatted value exceeds 38 characters.
+     * @return A String object containing up to 38 characters of formatted date
+     * and time. Returns an empty String if the processor core's strftime()
+     * reports failure. Some Arduino cores report success after truncation, so
+     * an overlong result may instead be returned as a truncated String.
      *
      * @note Available only if both `EPOCHTIME_ENABLE_STRING_FORMATTING` and
      * `EPOCHTIME_ENABLE_STRFTIME` are defined.
@@ -457,16 +467,17 @@ class TimeUtils {
      * @param fmt The strftime format string.
      * @param in_time An epochTime object
      *
-     * @warning This function does NOT verify that the buffer is large enough to
-     * hold the formatted string. The buffer must be at least 39 bytes. Prefer
-     * the overload that accepts a buffer size for smaller buffers.
+     * @warning This function uses a fixed 39-byte output capacity, so the
+     * buffer must be at least 39 bytes and no more than 38 characters can be
+     * written. Truncation behavior varies among processor cores. Prefer the
+     * overload that accepts a buffer size.
      *
      * @note Available only if `EPOCHTIME_ENABLE_STRFTIME` is defined.
      */
     static void formatDateTime(char* buffer, const char* fmt,
                                epochTime in_time);
     /**
-     * @brief Format an epochTime using a size-checked output buffer.
+     * @brief Format an epochTime using a size-bounded output buffer.
      *
      * The UTC instant is formatted in the same UTC offset that was supplied
      * when the object was constructed. The offset is not included in the
@@ -476,8 +487,15 @@ class TimeUtils {
      * @param bufferSize The total size of the output buffer in bytes.
      * @param fmt The strftime format string.
      * @param in_time The epochTime object to format.
-     * @return The number of characters written, excluding the null terminator,
-     * or zero if the output did not fit or an argument was invalid.
+     * @return The value returned by the processor core's strftime()
+     * implementation, or zero if an argument was invalid.
+     *
+     * @warning The output is limited to bufferSize bytes and is always null
+     * terminated, but truncation reporting varies among processor cores.
+     * Conforming strftime() implementations return zero when the output does
+     * not fit. Some Arduino cores instead return a nonzero value after
+     * truncating the output, so this return value cannot portably prove that
+     * the complete output was written.
      *
      * @note Available only if `EPOCHTIME_ENABLE_STRFTIME` is defined.
      */
@@ -499,8 +517,10 @@ class TimeUtils {
      *
      * @param fmt The strftime format string.
      * @param in_time An epochTime object
-     * @return A String object containing the formatted date and time.
-     * Returns an empty String if the formatted value exceeds 38 characters.
+     * @return A String object containing up to 38 characters of formatted date
+     * and time. Returns an empty String if the processor core's strftime()
+     * reports failure. Some Arduino cores report success after truncation, so
+     * an overlong result may instead be returned as a truncated String.
      *
      * @note Available only if both `EPOCHTIME_ENABLE_STRING_FORMATTING` and
      * `EPOCHTIME_ENABLE_STRFTIME` are defined.
@@ -730,23 +750,19 @@ class TimeUtils {
                               tm& timeParts);
 
     /**
-     * @brief Compare the instants represented by two tm values.
+     * @brief Compare the calendar fields of two tm values.
      *
-     * Fields derived from the calendar time (tm_wday and tm_yday) are
-     * intentionally ignored. The tm_isdst field is included in the comparison.
-     * If the core defines __TM_GMTOFF, its value is intentionally excluded from
-     * the comparison because it is treated as formatting metadata only. Both
-     * values are interpreted using the processor's local timezone.
+     * The tm_sec, tm_min, tm_hour, tm_mday, tm_mon, and tm_year fields are
+     * compared directly without normalization or timezone conversion. The
+     * tm_isdst fields must both be non-negative and equal. The derived tm_wday
+     * and tm_yday fields are intentionally ignored. If the core defines
+     * __TM_GMTOFF, it is also ignored because it is treated as formatting
+     * metadata only.
      *
      * @param a The first tm structure to compare.
      * @param b The second tm structure to compare.
-     * @return True if the two tm structures represent the same instant.
-     *
-     * @warning If either tm structure cannot be converted to a valid timestamp
-     * the function will return false.  This means that any time outside the
-     * range of a time_t for a given processor will fail the comparison. A
-     * successful conversion whose value is (time_t)-1 is still compared
-     * normally.
+     * @return True if the compared calendar fields and tm_isdst values are
+     * equal. Returns false if either tm_isdst value is negative.
      */
     static bool sameTime(const tm& a, const tm& b);
 

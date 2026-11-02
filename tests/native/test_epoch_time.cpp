@@ -1,4 +1,3 @@
-#include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -173,6 +172,14 @@ void testFormattingAndSanity() {
                                           "%Y-%m-%d", localTime));
     CHECK_EQUAL("small buffer is empty", 0, smallBuffer[0]);
 
+    const char longFormat[] = "123456789012345678901234567890123456789012345678"
+                              "9012345678901234567890";
+    char longBuffer[sizeof(longFormat)] = {};
+    CHECK_EQUAL("long custom formatter length", sizeof(longFormat) - 1,
+                TimeUtils::formatDateTime(longBuffer, sizeof(longBuffer),
+                                          longFormat, localTime));
+    CHECK_STRING("long custom formatter output", longFormat, longBuffer);
+
     const timestamp_t earliestLocal =
         static_cast<timestamp_t>(EARLIEST_SANE_UNIX_TIMESTAMP) +
         estUtcOffsetSeconds;
@@ -243,23 +250,41 @@ void testCoreTimeAndTmConversions() {
     CHECK_EQUAL("derived tm fields ignored", 1,
                 TimeUtils::sameTime(sameA, sameB));
 
+    tm outOfRangeFields      = makeTimeParts(2026, 1, 1, 0, 0, 0, 0);
+    outOfRangeFields.tm_mon  = 12;
+    outOfRangeFields.tm_mday = 0;
+    tm normalizedFields      = makeTimeParts(2026, 12, 31, 0, 0, 0, 0);
+    CHECK_EQUAL("out-of-range calendar fields are not normalized", 0,
+                TimeUtils::sameTime(outOfRangeFields, normalizedFields));
+
+    tm differentField     = sameA;
+    differentField.tm_sec = 1;
+    CHECK_EQUAL("different calendar fields compare unequal", 0,
+                TimeUtils::sameTime(sameA, differentField));
+
+    tm daylightA       = sameA;
+    daylightA.tm_isdst = 1;
+    tm daylightB       = daylightA;
+    CHECK_EQUAL("equal non-negative DST fields compare equal", 1,
+                TimeUtils::sameTime(daylightA, daylightB));
+    CHECK_EQUAL("different non-negative DST fields compare unequal", 0,
+                TimeUtils::sameTime(sameA, daylightA));
+
+    tm unknownDst       = sameA;
+    unknownDst.tm_isdst = -1;
+    CHECK_EQUAL("unknown first DST field is incomparable", 0,
+                TimeUtils::sameTime(unknownDst, sameA));
+    CHECK_EQUAL("unknown second DST field is incomparable", 0,
+                TimeUtils::sameTime(sameA, unknownDst));
+    CHECK_EQUAL("two unknown DST fields are incomparable", 0,
+                TimeUtils::sameTime(unknownDst, unknownDst));
+
 #ifdef __TM_GMTOFF
     tm sameOffsetMetadata          = sameA;
     sameOffsetMetadata.__TM_GMTOFF = estUtcOffsetSeconds;
     CHECK_EQUAL("tm offset metadata is ignored", 1,
                 TimeUtils::sameTime(sameA, sameOffsetMetadata));
 #endif
-
-    const time_t minusOne = static_cast<time_t>(-1);
-    const tm*    minusOneParts = localtime(&minusOne);
-    if (minusOneParts != nullptr) {
-        tm minusOneCopy = *minusOneParts;
-        errno           = 0;
-        if (mktime(&minusOneCopy) == minusOne && errno == 0) {
-            CHECK_EQUAL("valid time_t -1 instants compare equal", 1,
-                        TimeUtils::sameTime(*minusOneParts, *minusOneParts));
-        }
-    }
 }
 
 void testWideGpsTimestamps() {

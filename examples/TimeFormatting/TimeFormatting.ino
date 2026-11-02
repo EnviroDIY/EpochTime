@@ -195,7 +195,7 @@ void setup() {
     myTM1.tm_year  = 2026 - 1900;
     myTM1.tm_wday  = 0;  // ignored!
     myTM1.tm_yday  = 0;  // ignored!
-    myTM1.tm_isdst = 0;  // ignored!
+    myTM1.tm_isdst = 0;  // compared!
 #ifdef __TM_GMTOFF
     myTM1.__TM_GMTOFF = 0;
 #endif
@@ -212,7 +212,7 @@ void setup() {
     myTM2.tm_year  = 2026 - 1900;
     myTM2.tm_wday  = 0;  // ignored!
     myTM2.tm_yday  = 0;  // ignored!
-    myTM2.tm_isdst = 0;  // ignored!
+    myTM2.tm_isdst = 0;  // compared!
 #ifdef __TM_GMTOFF
     myTM2.__TM_GMTOFF = -5 * 3600;
 #endif
@@ -230,7 +230,7 @@ void setup() {
     myTM3.tm_year  = 2022 - 1900;
     myTM3.tm_wday  = 0;  // ignored!
     myTM3.tm_yday  = 0;  // ignored!
-    myTM3.tm_isdst = 0;  // ignored!
+    myTM3.tm_isdst = 0;  // compared!
 #ifdef __TM_GMTOFF
     myTM3.__TM_GMTOFF = 0;
 #endif
@@ -247,7 +247,7 @@ void setup() {
     myTM4.tm_year  = 2026 - 1900;
     myTM4.tm_wday  = 3;    // Wednesday
     myTM4.tm_yday  = 182;  // ignored!
-    myTM4.tm_isdst = 0;    // ignored!
+    myTM4.tm_isdst = 0;    // compared!
 #ifdef __TM_GMTOFF
     myTM4.__TM_GMTOFF = 0;
 #endif
@@ -261,14 +261,8 @@ void setup() {
     Serial.print(tmToArrayString(myTM2));
     Serial.print(F(" are "));
     Serial.println(TimeUtils::sameTime(myTM1, myTM2) ? "equal" : "NOT equal");
-#ifdef __TM_GMTOFF
-    Serial.println(F("\tThey should be equal since the processing takes the "
-                     "timezone into account."));
-#else
-    Serial.println(
-        F("\tTimezone information is not available, equality may not "
-          "account for timezone."));
-#endif
+    Serial.println(F("\tThey should not be equal because calendar fields are "
+                     "compared directly; timezone offsets are ignored."));
 
     Serial.print(F("The structs "));
     Serial.print(tmToArrayString(myTM1));
