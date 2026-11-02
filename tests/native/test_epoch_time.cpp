@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -248,6 +249,17 @@ void testCoreTimeAndTmConversions() {
     CHECK_EQUAL("tm offset metadata is ignored", 1,
                 TimeUtils::sameTime(sameA, sameOffsetMetadata));
 #endif
+
+    const time_t minusOne = static_cast<time_t>(-1);
+    const tm*    minusOneParts = localtime(&minusOne);
+    if (minusOneParts != nullptr) {
+        tm minusOneCopy = *minusOneParts;
+        errno           = 0;
+        if (mktime(&minusOneCopy) == minusOne && errno == 0) {
+            CHECK_EQUAL("valid time_t -1 instants compare equal", 1,
+                        TimeUtils::sameTime(*minusOneParts, *minusOneParts));
+        }
+    }
 }
 
 void testWideGpsTimestamps() {

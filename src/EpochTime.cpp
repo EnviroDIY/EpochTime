@@ -9,6 +9,7 @@
  */
 #include "EpochTime.h"
 
+#include <errno.h>
 #include <limits.h>
 
 // Initialize the array for the leap seconds - taken from the defines
@@ -431,13 +432,20 @@ bool TimeUtils::sameTime(const tm& a, const tm& b) {
     // epoch. The tm_wday and tm_yday values are overwritten with correct values
     // after computation; we copied the input tm structs to preserve the
     // originals.
-    if (mktime(&aCopy) == static_cast<time_t>(-1) ||
-        mktime(&bCopy) == static_cast<time_t>(-1)) {
+    errno                   = 0;
+    const time_t aTimestamp = mktime(&aCopy);
+    const bool   aFailed = aTimestamp == static_cast<time_t>(-1) && errno != 0;
+
+    errno                   = 0;
+    const time_t bTimestamp = mktime(&bCopy);
+    const bool   bFailed = bTimestamp == static_cast<time_t>(-1) && errno != 0;
+
+    if (aFailed || bFailed) {
         // If either timestamp could not be compiled, we cannot safely compare
         // them.
         return false;
     }
-    return mktime(&aCopy) == mktime(&bCopy);
+    return aTimestamp == bTimestamp;
 }
 
 void TimeUtils::begin() {
