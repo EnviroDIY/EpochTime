@@ -346,8 +346,13 @@ void setup() {
     Serial.println(TimeUtils::formatISO8601(myEpochTime, -5 * 3600L));
     Serial.print(F("ISO 8601, input timezone, from a single timestamp (assumes "
                    "input and output are in the same timezone): "));
-    Serial.println(
-        TimeUtils::formatISO8601(myTimestamp, myUtcOffsetSeconds, myEpoch));
+    String formattedTimestamp =
+        TimeUtils::formatISO8601(myTimestamp, myUtcOffsetSeconds, myEpoch);
+    if (formattedTimestamp.length() == 0) {
+        Serial.println(F("Unable to format timestamp."));
+    } else {
+        Serial.println(formattedTimestamp);
+    }
 #if EPOCHTIME_ENABLE_STRFTIME
     Serial.print(F("Custom Format, from an epochTime object (input offset "
                    "preserved): "));

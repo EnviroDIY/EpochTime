@@ -309,7 +309,8 @@ timestamp_t TimeUtils::convertEpoch(timestamp_t in_timestamp,
 timestamp_t TimeUtils::convertTZOffset(timestamp_t in_timestamp,
                                        int32_t     in_utcOffsetSeconds,
                                        int32_t     out_utcOffsetSeconds) {
-    return in_timestamp + (out_utcOffsetSeconds - in_utcOffsetSeconds);
+    return in_timestamp + (static_cast<int64_t>(out_utcOffsetSeconds) -
+                           in_utcOffsetSeconds);
 }
 
 timestamp_t TimeUtils::convertOffsetAndEpoch(timestamp_t in_timestamp,

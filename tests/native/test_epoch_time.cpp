@@ -142,6 +142,9 @@ void testFormattingAndSanity() {
                              epochStart::unix_epoch);
     CHECK_STRING("raw ISO offset in seconds", "2026-06-30T19:00:00-05:00",
                  buffer);
+    TimeUtils::formatISO8601(buffer, local, -5, epochStart::unix_epoch);
+    CHECK_STRING("raw legacy ISO offset in hours",
+                 "2026-06-30T19:00:00-05:00", buffer);
     TimeUtils::formatISO8601(buffer, localTime, 14 * 3600L);
     CHECK_STRING("epochTime ISO conversion", "2026-07-01T14:00:00+14:00",
                  buffer);

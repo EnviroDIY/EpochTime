@@ -276,7 +276,7 @@ void testFormattingAndSanity() {
         smallBuffer, sizeof(smallBuffer), "%Y-%m-%d", localTime);
     CHECK_EQUAL("small format buffer matches the reported result", 1,
                 smallBufferLength == 0 ? smallBuffer[0] == '\0'
-                                       : smallBuffer[0] != '\0');
+                                       : smallBuffer[0] != 'x');
     CHECK_EQUAL("small format buffer is null-terminated", 0,
                 smallBuffer[sizeof(smallBuffer) - 1]);
 
