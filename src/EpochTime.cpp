@@ -42,6 +42,14 @@ timestamp_t epochTime::getTimestamp(int32_t    out_utcOffsetSeconds,
 void TimeUtils::formatISO8601(char* buffer, epochTime in_time,
                               int8_t utcOffsetHours) {
     _ensureInitialized();
+    const int16_t signedUtcOffsetHours = static_cast<int16_t>(utcOffsetHours);
+    const uint8_t absoluteUtcOffsetHours =
+        static_cast<uint8_t>(signedUtcOffsetHours < 0 ? -signedUtcOffsetHours
+                                                      : signedUtcOffsetHours);
+    if (absoluteUtcOffsetHours > 99) {
+        buffer[0] = '\0';
+        return;
+    }
     // convert the offset in hours to an offset in seconds
     const int32_t outputUtcOffsetSeconds =
         static_cast<int32_t>(utcOffsetHours) * 3600L;
@@ -57,10 +65,14 @@ void TimeUtils::formatISO8601(char* buffer, epochTime in_time,
     time_t t = static_cast<time_t>(TimeUtils::getTimestamp(
         in_time, outputUtcOffsetSeconds, TimeUtils::_core_epoch));
 
-    // Now use gmtime_r() to get the broken-down UTC time corresponding to the
+    // Now use gmtime() to get the broken-down UTC time corresponding to the
     // adjusted timestamp.
-    tm timeParts;
-    gmtime_r(&t, &timeParts);
+    tm* tmp = gmtime(&t);
+    if (tmp == nullptr) {
+        buffer[0] = '\0';
+        return;
+    }
+    tm timeParts = *tmp;
 
     const int16_t year   = static_cast<int16_t>(timeParts.tm_year + 1900);
     uint8_t       month  = static_cast<uint8_t>(timeParts.tm_mon + 1);
@@ -98,8 +110,6 @@ void TimeUtils::formatISO8601(char* buffer, epochTime in_time,
         sign             = '-';
         utcOffsetMinutes = -utcOffsetMinutes;
     }
-    const uint8_t absoluteUtcOffsetHours =
-        static_cast<uint8_t>(utcOffsetMinutes / 60);
     const uint8_t remainingUtcOffsetMinutes =
         static_cast<uint8_t>(utcOffsetMinutes % 60);
 
