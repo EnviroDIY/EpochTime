@@ -87,12 +87,16 @@
   "ignoreWords": [],
   "import": [],
   "ignorePaths": [
+    ".vscode",
+    ".gitignore",
+    ".clang-format",
+    ".clang-tidy",
     "platformio.ini",
     "*doxyfile*",
-    ".vscode",
     "docs/Doxyfile",
     ".github/**/*.yaml",
     ".github/**/*.yml",
+    ".gitignore",
     "tests/run_native_tests.ps1"
   ]
 }

@@ -1,7 +1,6 @@
 # EpochTime tests
 
-The native test suite exercises conversion behavior that does not require
-Arduino hardware, including:
+The native test suite exercises conversion behavior that does not require Arduino hardware, including:
 
 - Unix, Y2K, NIST, and GPS epoch conversions and round trips
 - Positive and negative UTC-offset normalization
@@ -22,6 +21,4 @@ Run the suite on Linux or macOS:
 bash tests/run_native_tests.sh
 ```
 
-The Mayfly and Stonefly PlatformIO builds remain necessary to verify Arduino
-core compatibility. Native tests validate conversion behavior but are not a
-substitute for hardware clock testing.
+The Mayfly and Stonefly PlatformIO builds remain necessary to verify Arduino core compatibility. Native tests validate conversion behavior but are not a substitute for hardware clock testing.
