@@ -27,4 +27,5 @@ jobs:
     uses: EnviroDIY/workflows/.github/workflows/build_examples.yaml@main
     with:
       examples_to_build: "examples/TimeFormatting,extras/FormattingTests"
+      compiler_flags: "-D EPOCHTIME_ENABLE_STRFTIME=1;"
     secrets: inherit
