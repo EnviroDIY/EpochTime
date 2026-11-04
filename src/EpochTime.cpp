@@ -11,6 +11,21 @@
 
 #include <limits.h>
 
+namespace {
+
+int32_t normalizeUtcOffsetSeconds(int32_t utcOffsetSeconds) {
+    // Releases through 1.1.1 accepted hours in formatISO8601() and
+    // isTimeSane(). Preserve those calls while standardizing the API on
+    // seconds. Real-world UTC offsets expressed in seconds exceed this range,
+    // except UTC itself.
+    if (utcOffsetSeconds >= -24 && utcOffsetSeconds <= 24) {
+        return utcOffsetSeconds * 3600L;
+    }
+    return utcOffsetSeconds;
+}
+
+}  // namespace
+
 // Initialize the array for the leap seconds - taken from the defines
 const uint32_t TimeUtils::leapSeconds[NUMBER_LEAP_SECONDS] = LEAP_SECONDS;
 
@@ -40,19 +55,16 @@ timestamp_t epochTime::getTimestamp(int32_t    out_utcOffsetSeconds,
 // Format an epoch time as ISO8601 without using strftime(), snprintf(), or
 // intermediate String objects.  The caller must provide at least 26 bytes.
 void TimeUtils::formatISO8601(char* buffer, epochTime in_time,
-                              int8_t utcOffsetHours) {
+                              int32_t utcOffsetSeconds) {
     _ensureInitialized();
-    const int16_t signedUtcOffsetHours = static_cast<int16_t>(utcOffsetHours);
-    const uint8_t absoluteUtcOffsetHours =
-        static_cast<uint8_t>(signedUtcOffsetHours < 0 ? -signedUtcOffsetHours
-                                                      : signedUtcOffsetHours);
-    if (absoluteUtcOffsetHours > 99) {
+    utcOffsetSeconds = normalizeUtcOffsetSeconds(utcOffsetSeconds);
+    constexpr int32_t maxIsoUtcOffsetSeconds = 99L * 3600L + 59L * 60L;
+    if (utcOffsetSeconds < -maxIsoUtcOffsetSeconds ||
+        utcOffsetSeconds > maxIsoUtcOffsetSeconds ||
+        utcOffsetSeconds % 60L != 0) {
         buffer[0] = '\0';
         return;
     }
-    // convert the offset in hours to an offset in seconds
-    const int32_t outputUtcOffsetSeconds =
-        static_cast<int32_t>(utcOffsetHours) * 3600L;
     // Get a single number timestamp representing the input time in the
     // processor core's epoch and the requested output offset before using
     // gmtime().  The gmtime function expects the time_t to be in UTC and
@@ -63,7 +75,7 @@ void TimeUtils::formatISO8601(char* buffer, epochTime in_time,
     // NOTE: gmtime requires a true time_t (in whatever size the core uses) as
     // input!
     time_t t = static_cast<time_t>(TimeUtils::getTimestamp(
-        in_time, outputUtcOffsetSeconds, TimeUtils::_core_epoch));
+        in_time, utcOffsetSeconds, TimeUtils::_core_epoch));
 
     // Now use gmtime() to get the broken-down UTC time corresponding to the
     // adjusted timestamp.
@@ -102,16 +114,17 @@ void TimeUtils::formatISO8601(char* buffer, epochTime in_time,
     buffer[17] = static_cast<char>('0' + second / 10);
     buffer[18] = static_cast<char>('0' + second % 10);
 
-    // The public API currently accepts whole-hour offsets. Keep the output
-    // construction explicit rather than invoking printf-family formatting.
-    int16_t utcOffsetMinutes = static_cast<int16_t>(utcOffsetHours) * 60;
-    char    sign             = '+';
-    if (utcOffsetMinutes < 0) {
-        sign             = '-';
-        utcOffsetMinutes = -utcOffsetMinutes;
-    }
+    // Keep the output construction explicit rather than invoking printf-family
+    // formatting.
+    const char    sign = utcOffsetSeconds < 0 ? '-' : '+';
+    const int32_t absoluteUtcOffsetSeconds =
+        utcOffsetSeconds < 0 ? -utcOffsetSeconds : utcOffsetSeconds;
+    const uint16_t absoluteUtcOffsetMinutes =
+        static_cast<uint16_t>(absoluteUtcOffsetSeconds / 60L);
+    const uint8_t absoluteUtcOffsetHours =
+        static_cast<uint8_t>(absoluteUtcOffsetMinutes / 60U);
     const uint8_t remainingUtcOffsetMinutes =
-        static_cast<uint8_t>(utcOffsetMinutes % 60);
+        static_cast<uint8_t>(absoluteUtcOffsetMinutes % 60U);
 
     buffer[19] = sign;
     buffer[20] = static_cast<char>('0' + absoluteUtcOffsetHours / 10);
@@ -123,24 +136,23 @@ void TimeUtils::formatISO8601(char* buffer, epochTime in_time,
 }
 
 void TimeUtils::formatISO8601(char* buffer, timestamp_t epochSeconds,
-                              int8_t utcOffsetHours, epochStart epoch) {
-    const int32_t utcOffsetSeconds = static_cast<int32_t>(utcOffsetHours) *
-        3600L;
+                              int32_t utcOffsetSeconds, epochStart epoch) {
+    utcOffsetSeconds = normalizeUtcOffsetSeconds(utcOffsetSeconds);
     formatISO8601(buffer, epochTime(epochSeconds, utcOffsetSeconds, epoch),
-                  utcOffsetHours);
+                  utcOffsetSeconds);
 }
 
 #if EPOCHTIME_ENABLE_STRING_FORMATTING
-String TimeUtils::formatISO8601(timestamp_t epochSeconds, int8_t utcOffsetHours,
-                                epochStart epoch) {
+String TimeUtils::formatISO8601(timestamp_t epochSeconds,
+                                int32_t utcOffsetSeconds, epochStart epoch) {
     char buffer[26];
-    formatISO8601(buffer, epochSeconds, utcOffsetHours, epoch);
+    formatISO8601(buffer, epochSeconds, utcOffsetSeconds, epoch);
     return String(buffer);
 }
 
-String TimeUtils::formatISO8601(epochTime in_time, int8_t utcOffsetHours) {
+String TimeUtils::formatISO8601(epochTime in_time, int32_t utcOffsetSeconds) {
     char buffer[26];
-    formatISO8601(buffer, in_time, utcOffsetHours);
+    formatISO8601(buffer, in_time, utcOffsetSeconds);
     return String(buffer);
 }
 #endif
@@ -240,10 +252,9 @@ String TimeUtils::printEpochStart(epochStart epoch) {
 }
 #endif
 
-bool TimeUtils::isTimeSane(timestamp_t ts, int8_t utcOffsetHours,
+bool TimeUtils::isTimeSane(timestamp_t ts, int32_t utcOffsetSeconds,
                            epochStart epoch) {
-    const int32_t utcOffsetSeconds = static_cast<int32_t>(utcOffsetHours) *
-        3600L;
+    utcOffsetSeconds = normalizeUtcOffsetSeconds(utcOffsetSeconds);
     return isTimeSane(epochTime(ts, utcOffsetSeconds, epoch));
 }
 bool TimeUtils::isTimeSane(epochTime in_time) {
@@ -298,7 +309,8 @@ timestamp_t TimeUtils::convertEpoch(timestamp_t in_timestamp,
 timestamp_t TimeUtils::convertTZOffset(timestamp_t in_timestamp,
                                        int32_t     in_utcOffsetSeconds,
                                        int32_t     out_utcOffsetSeconds) {
-    return in_timestamp + (out_utcOffsetSeconds - in_utcOffsetSeconds);
+    return in_timestamp + (static_cast<int64_t>(out_utcOffsetSeconds) -
+                           in_utcOffsetSeconds);
 }
 
 timestamp_t TimeUtils::convertOffsetAndEpoch(timestamp_t in_timestamp,

@@ -14,6 +14,12 @@ Dealing with time is **hard**!
 This library only supports the bare minimum necessary to work with logger clocks and convert between different epoch types.
 It does not support full time zones (only static offsets from UTC), daylight savings time, or many other complications of time.
 
+## UTC offset units
+
+All UTC-offset parameters use signed seconds, with positive values east of UTC and negative values west of UTC.
+For backward compatibility, `TimeUtils::formatISO8601()` and the timestamp overload of `TimeUtils::isTimeSane()` interpret values from -24 through +24 as legacy hour values and convert them to seconds.
+ISO 8601 offsets must be a whole number of minutes, so fractional-hour offsets such as UTC+05:30 are supported.
+
 Parts of this library's functionality exits in **many** Arduino libraries supporting clocks, but I found none that had complete enough or well enough abstracted functionality to be portable, so I created this one.
 
 If you thought handling time was simple, read this: https://gist.github.com/timvisee/fcda9bbdff88d45cc9061606b4b923ca

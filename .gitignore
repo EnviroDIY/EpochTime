@@ -95,7 +95,7 @@ lib
 lib/readme.txt
 /include
 include/readme.txt
-/tests
+# /tests
 tests/readme.txt
 /boards
 /variants
