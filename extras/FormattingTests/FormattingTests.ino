@@ -133,30 +133,31 @@ tm makeTimeParts(int year, int month, int day, int hour, int minute, int second,
 
 void testOffsetAndEpochConversions() {
     printSection(F("Offset and epoch conversions"));
-    const timestamp_t unixUtc   = static_cast<timestamp_t>(1782864000LL);
-    const int32_t     estOffset = -5 * 3600L;
-    const timestamp_t local     = unixUtc + estOffset;
+    const timestamp_t unixUtc = static_cast<timestamp_t>(1782864000LL);
+    const int32_t     estUtcOffsetSeconds = -5 * 3600L;
+    const timestamp_t local               = unixUtc + estUtcOffsetSeconds;
 
-    epochTime localTime(local, estOffset, epochStart::unix_epoch);
+    epochTime localTime(local, estUtcOffsetSeconds, epochStart::unix_epoch);
     CHECK_EQUAL("negative offset normalizes to UTC", unixUtc,
                 localTime.getTimestamp());
     CHECK_EQUAL("negative offset round trips", local,
-                localTime.getTimestamp(estOffset));
+                localTime.getTimestamp(estUtcOffsetSeconds));
 
-    const int32_t indiaOffset = 5 * 3600L + 30 * 60L;
-    epochTime     indiaTime(unixUtc + indiaOffset, indiaOffset,
-                            epochStart::unix_epoch);
+    const int32_t indiaUtcOffsetSeconds = 5 * 3600L + 30 * 60L;
+    epochTime indiaTime(unixUtc + indiaUtcOffsetSeconds, indiaUtcOffsetSeconds,
+                        epochStart::unix_epoch);
     CHECK_EQUAL("positive half-hour offset normalizes to UTC", unixUtc,
                 indiaTime.getTimestamp());
-    CHECK_EQUAL("positive half-hour offset round trips", unixUtc + indiaOffset,
-                indiaTime.getTimestamp(indiaOffset));
+    CHECK_EQUAL("positive half-hour offset round trips",
+                unixUtc + indiaUtcOffsetSeconds,
+                indiaTime.getTimestamp(indiaUtcOffsetSeconds));
     CHECK_EQUAL("equal instants compare equal", 1, localTime == indiaTime);
     CHECK_EQUAL("different instants compare unequal", 1,
                 localTime != epochTime(unixUtc + 1));
-    CHECK_EQUAL("timezone offset conversion", unixUtc + indiaOffset,
-                TimeUtils::convertTZOffset(unixUtc, 0, indiaOffset));
-    CHECK_EQUAL("utility timestamp conversion", unixUtc + indiaOffset,
-                TimeUtils::getTimestamp(localTime, indiaOffset,
+    CHECK_EQUAL("timezone offset conversion", unixUtc + indiaUtcOffsetSeconds,
+                TimeUtils::convertTZOffset(unixUtc, 0, indiaUtcOffsetSeconds));
+    CHECK_EQUAL("utility timestamp conversion", unixUtc + indiaUtcOffsetSeconds,
+                TimeUtils::getTimestamp(localTime, indiaUtcOffsetSeconds,
                                         epochStart::unix_epoch));
 
     const timestamp_t y2k = unixUtc - EPOCH_UNIX_TO_Y2K;
@@ -184,36 +185,43 @@ void testOffsetAndEpochConversions() {
                                         epochStart::unix_epoch));
     CHECK_EQUAL("GPS offset is normalized before leap conversion", 362793600LL,
                 TimeUtils::convertOffsetAndEpoch(
-                    static_cast<timestamp_t>(46810801LL), estOffset,
+                    static_cast<timestamp_t>(46810801LL), estUtcOffsetSeconds,
                     epochStart::gps_epoch, 0, epochStart::unix_epoch));
 }
 
 void testFormattingAndSanity() {
     printSection(F("Formatting and sanity boundaries"));
-    const timestamp_t unixUtc   = static_cast<timestamp_t>(1782864000LL);
-    const int32_t     estOffset = -5 * 3600L;
-    const timestamp_t local     = unixUtc + estOffset;
-    epochTime         localTime(local, estOffset, epochStart::unix_epoch);
+    const timestamp_t unixUtc = static_cast<timestamp_t>(1782864000LL);
+    const int32_t     estUtcOffsetSeconds = -5 * 3600L;
+    const timestamp_t local               = unixUtc + estUtcOffsetSeconds;
+    epochTime localTime(local, estUtcOffsetSeconds, epochStart::unix_epoch);
 
     char buffer[40] = {};
-    TimeUtils::formatISO8601(buffer, local, -5, epochStart::unix_epoch);
+    TimeUtils::formatISO8601(buffer, local, estUtcOffsetSeconds,
+                             epochStart::unix_epoch);
     CHECK_STRING("raw ISO timestamp retains UTC-5 fields",
                  "2026-06-30T19:00:00-05:00", buffer);
-    TimeUtils::formatISO8601(buffer, localTime, 14);
+    TimeUtils::formatISO8601(buffer, localTime, 14 * 3600L);
     CHECK_STRING("ISO conversion crosses into UTC+14",
                  "2026-07-01T14:00:00+14:00", buffer);
-    TimeUtils::formatISO8601(buffer, localTime, -12);
+    TimeUtils::formatISO8601(buffer, localTime, -12 * 3600L);
     CHECK_STRING("ISO conversion crosses into UTC-12",
                  "2026-06-30T12:00:00-12:00", buffer);
+    TimeUtils::formatISO8601(buffer, localTime, 5 * 3600L + 30 * 60L);
+    CHECK_STRING("ISO conversion supports UTC+05:30",
+                 "2026-07-01T05:30:00+05:30", buffer);
+    TimeUtils::formatISO8601(buffer, localTime, -5);
+    CHECK_STRING("legacy ISO hour offset remains supported",
+                 "2026-06-30T19:00:00-05:00", buffer);
 
 #if EPOCHTIME_ENABLE_STRING_FORMATTING
-    String rawISO = TimeUtils::formatISO8601(
-        local, -5, epochStart::unix_epoch);
+    String rawISO = TimeUtils::formatISO8601(local, estUtcOffsetSeconds,
+                                             epochStart::unix_epoch);
     CHECK_STRING("raw ISO String overload", "2026-06-30T19:00:00-05:00",
                  rawISO.c_str());
-    String objectISO = TimeUtils::formatISO8601(localTime, 14);
-    CHECK_STRING("epochTime ISO String overload",
-                 "2026-07-01T14:00:00+14:00", objectISO.c_str());
+    String objectISO = TimeUtils::formatISO8601(localTime, 14 * 3600L);
+    CHECK_STRING("epochTime ISO String overload", "2026-07-01T14:00:00+14:00",
+                 objectISO.c_str());
 #endif
 
     TimeUtils::formatISO8601(buffer, static_cast<timestamp_t>(1709251199LL), 0,
@@ -240,9 +248,9 @@ void testFormattingAndSanity() {
                  objectDateTime.c_str());
 #endif
 
-    const int32_t indiaOffset = 5 * 3600L + 30 * 60L;
-    epochTime     indiaTime(unixUtc + indiaOffset, indiaOffset,
-                            epochStart::unix_epoch);
+    const int32_t indiaUtcOffsetSeconds = 5 * 3600L + 30 * 60L;
+    epochTime indiaTime(unixUtc + indiaUtcOffsetSeconds, indiaUtcOffsetSeconds,
+                        epochStart::unix_epoch);
     TimeUtils::formatDateTime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S",
                               indiaTime);
     CHECK_STRING("custom formatter retains a half-hour offset",
@@ -263,16 +271,18 @@ void testFormattingAndSanity() {
                  rawDateTime.c_str());
 #endif
 
-    char smallBuffer[8] = {'x', 'x', 'x', 'x', 'x', 'x', 'x', '\0'};
-    TimeUtils::formatDateTime(smallBuffer, sizeof(smallBuffer), "%Y-%m-%d",
-                              localTime);
-    CHECK_EQUAL("small format buffer is written", 1, smallBuffer[0] != 'x');
+    char         smallBuffer[8]    = {'x', 'x', 'x', 'x', 'x', 'x', 'x', '\0'};
+    const size_t smallBufferLength = TimeUtils::formatDateTime(
+        smallBuffer, sizeof(smallBuffer), "%Y-%m-%d", localTime);
+    CHECK_EQUAL("small format buffer matches the reported result", 1,
+                smallBufferLength == 0 ? smallBuffer[0] == '\0'
+                                       : smallBuffer[0] != '\0');
     CHECK_EQUAL("small format buffer is null-terminated", 0,
                 smallBuffer[sizeof(smallBuffer) - 1]);
 
     const char longFormat[] = "123456789012345678901234567890123456789012345678"
                               "9012345678901234567890";
-    char longBuffer[sizeof(longFormat)] = {};
+    char       longBuffer[sizeof(longFormat)] = {};
     TimeUtils::formatDateTime(longBuffer, sizeof(longBuffer), longFormat,
                               localTime);
     CHECK_STRING("long custom formatter output", longFormat, longBuffer);
@@ -282,13 +292,17 @@ void testFormattingAndSanity() {
 #endif
 
     const timestamp_t earliestLocal =
-        static_cast<timestamp_t>(EARLIEST_SANE_UNIX_TIMESTAMP) + estOffset;
+        static_cast<timestamp_t>(EARLIEST_SANE_UNIX_TIMESTAMP) +
+        estUtcOffsetSeconds;
+    CHECK_EQUAL("earliest sane instant is included", 1,
+                TimeUtils::isTimeSane(earliestLocal, estUtcOffsetSeconds,
+                                      epochStart::unix_epoch));
     CHECK_EQUAL(
-        "earliest sane instant is included", 1,
+        "legacy sane hour offset remains supported", 1,
         TimeUtils::isTimeSane(earliestLocal, -5, epochStart::unix_epoch));
-    CHECK_EQUAL(
-        "second before sane range is rejected", 0,
-        TimeUtils::isTimeSane(earliestLocal - 1, -5, epochStart::unix_epoch));
+    CHECK_EQUAL("second before sane range is rejected", 0,
+                TimeUtils::isTimeSane(earliestLocal - 1, estUtcOffsetSeconds,
+                                      epochStart::unix_epoch));
     CHECK_EQUAL("latest sane instant is included", 1,
                 TimeUtils::isTimeSane(
                     static_cast<timestamp_t>(LATEST_SANE_UNIX_TIMESTAMP), 0,
@@ -322,18 +336,19 @@ void testFormattingAndSanity() {
 
 void testCoreTimeAndTmConversions() {
     printSection(F("Core time_t and tm conversions"));
-    const timestamp_t unixUtc    = static_cast<timestamp_t>(1782864000LL);
-    const int32_t     estOffset  = -5 * 3600L;
-    const timestamp_t local      = unixUtc + estOffset;
-    const epochStart  coreEpoch  = TimeUtils::getCoreEpochStart();
-    const int32_t     coreOffset = TimeUtils::getCoreTimeZone();
+    const timestamp_t unixUtc = static_cast<timestamp_t>(1782864000LL);
+    const int32_t     estUtcOffsetSeconds = -5 * 3600L;
+    const timestamp_t local               = unixUtc + estUtcOffsetSeconds;
+    const epochStart  coreEpoch           = TimeUtils::getCoreEpochStart();
+    const int32_t     coreOffset          = TimeUtils::getCoreTimeZone();
     const timestamp_t expectedCore =
         TimeUtils::convertEpoch(unixUtc, epochStart::unix_epoch, coreEpoch);
 
     CHECK_EQUAL("epochTime converts to the core epoch", expectedCore,
                 TimeUtils::getTimeT(epochTime(unixUtc)));
     CHECK_EQUAL("local timestamp converts to the core epoch", expectedCore,
-                TimeUtils::getTimeT(local, estOffset, epochStart::unix_epoch));
+                TimeUtils::getTimeT(local, estUtcOffsetSeconds,
+                                    epochStart::unix_epoch));
 
     tm                parts            = makeTimeParts(2026, 7, 1, 0, 0, 0, 0);
     const timestamp_t expectedCompiled = unixUtc - coreOffset;
@@ -342,9 +357,10 @@ void testCoreTimeAndTmConversions() {
                 expectedCompiled, compiled.getTimestamp());
 
 #ifdef __TM_GMTOFF
-    tm        offsetParts    = makeTimeParts(2026, 6, 30, 19, 0, 0, estOffset);
-    epochTime offsetCompiled = TimeUtils::tmToEpochTime(offsetParts);
-    const timestamp_t expectedOffsetCompiled = unixUtc + estOffset - coreOffset;
+    tm offsetParts = makeTimeParts(2026, 6, 30, 19, 0, 0, estUtcOffsetSeconds);
+    epochTime         offsetCompiled = TimeUtils::tmToEpochTime(offsetParts);
+    const timestamp_t expectedOffsetCompiled = unixUtc + estUtcOffsetSeconds -
+        coreOffset;
     CHECK_EQUAL("tm offset does not adjust the compiled instant",
                 expectedOffsetCompiled, offsetCompiled.getTimestamp());
 
@@ -364,8 +380,8 @@ void testCoreTimeAndTmConversions() {
                  "2026-07-01 00:00:00", buffer);
     TimeUtils::formatDateTime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S",
                               offsetCompiled);
-    epochTime expectedFormatting(expectedOffsetCompiled + estOffset, estOffset,
-                                 epochStart::unix_epoch);
+    epochTime expectedFormatting(expectedOffsetCompiled + estUtcOffsetSeconds,
+                                 estUtcOffsetSeconds, epochStart::unix_epoch);
     char      expectedBuffer[40] = {};
     TimeUtils::formatDateTime(expectedBuffer, sizeof(expectedBuffer),
                               "%Y-%m-%d %H:%M:%S", expectedFormatting);
@@ -383,7 +399,7 @@ void testCoreTimeAndTmConversions() {
     CHECK_EQUAL("epochTime parts have the UTC day", 1, utcParts.tm_mday);
 
     tm rawParts = {};
-    TimeUtils::fillTimeParts(local, estOffset, epochStart::unix_epoch,
+    TimeUtils::fillTimeParts(local, estUtcOffsetSeconds, epochStart::unix_epoch,
                              rawParts);
     CHECK_EQUAL("raw parts have the UTC hour", 0, rawParts.tm_hour);
     CHECK_EQUAL("raw parts have the UTC day", 1, rawParts.tm_mday);
@@ -419,7 +435,7 @@ void testCoreTimeAndTmConversions() {
 
 #ifdef __TM_GMTOFF
     tm sameOffsetMetadata          = sameA;
-    sameOffsetMetadata.__TM_GMTOFF = estOffset;
+    sameOffsetMetadata.__TM_GMTOFF = estUtcOffsetSeconds;
     CHECK_EQUAL("tm offset metadata is ignored", 1,
                 TimeUtils::sameTime(sameA, sameOffsetMetadata));
 #else

@@ -26,8 +26,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Changed
 
-- Name UTC-offset parameters, stored values, and internal variables with their
-  units in hours, minutes, or seconds.
+- Standardize all UTC-offset parameters, stored values, and internal variables on signed seconds, including every `formatISO8601()` overload and the timestamp overload of `isTimeSane()`.
+- Preserve source compatibility by interpreting UTC-offset arguments from -24 through +24 as legacy hour values in `formatISO8601()` and `isTimeSane()`.
 
 ### Added
 
@@ -37,8 +37,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - Preserve the input UTC offset when formatting an `epochTime` with
   `formatDateTime()`.
-- Convert whole-hour offsets to seconds before constructing `epochTime`
-  objects in the ISO 8601 and sanity-checking overloads.
+- Support fractional-hour UTC offsets in ISO 8601 output.
 - Normalize UTC offsets before converting between epochs so GPS leap-second
   boundaries are handled correctly.
 - Keep scalar `time_t` values in UTC while respecting each core's epoch and

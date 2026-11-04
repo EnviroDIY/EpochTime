@@ -343,18 +343,11 @@ void setup() {
     Serial.println(F("-----------------------"));
     Serial.print(F("ISO 8601, UTC-5, from the epochTime object (timezone "
                    "should be converted): "));
-    Serial.println(TimeUtils::formatISO8601(myEpochTime, -5));
+    Serial.println(TimeUtils::formatISO8601(myEpochTime, -5 * 3600L));
     Serial.print(F("ISO 8601, input timezone, from a single timestamp (assumes "
                    "input and output are in the same timezone): "));
-    if (myUtcOffsetSeconds % 3600L == 0 && myUtcOffsetSeconds >= -99L * 3600L &&
-        myUtcOffsetSeconds <= 99L * 3600L) {
-        Serial.println(TimeUtils::formatISO8601(
-            myTimestamp, static_cast<int8_t>(myUtcOffsetSeconds / 3600L),
-            myEpoch));
-    } else {
-        Serial.println(F("unsupported (ISO formatter requires whole-hour "
-                         "offsets)"));
-    }
+    Serial.println(
+        TimeUtils::formatISO8601(myTimestamp, myUtcOffsetSeconds, myEpoch));
 #if EPOCHTIME_ENABLE_STRFTIME
     Serial.print(F("Custom Format, from an epochTime object (input offset "
                    "preserved): "));

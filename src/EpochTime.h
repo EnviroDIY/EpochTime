@@ -285,7 +285,9 @@ class epochTime {
  * @note This is a static-only class with all static functions and a deleted
  * constructor.
  *
- * @todo Support half/quarter hour time zones
+ * @important All UTC-offset parameters are expressed in seconds. For backward
+ * compatibility with releases through 1.1.1, formatISO8601() and isTimeSane()
+ * interpret values from -24 through +24 as hours and convert them to seconds.
  *
  * This class provides utilities for:
  * - Formatting timestamps into ISO8601 and custom string formats
@@ -308,25 +310,27 @@ class TimeUtils {
      *
      * @param buffer A buffer of at least 26 bytes.
      * @param in_time The time to format.
-     * @param utcOffsetHours The offset from UTC in hours for the printed time.
+     * @param utcOffsetSeconds The offset from UTC in seconds for the printed
+     * time. The offset must be a whole number of minutes.
      */
     static void formatISO8601(char* buffer, epochTime in_time,
-                              int8_t utcOffsetHours);
+                              int32_t utcOffsetSeconds);
 
     /**
      * @brief Format a single timestamp as ISO8601 into a caller-supplied
      * buffer.
      *
      * The input timestamp is assumed to already represent calendar time in
-     * utcOffsetHours. The buffer must be at least 26 bytes.
+     * utcOffsetSeconds. The buffer must be at least 26 bytes.
      *
      * @param buffer A buffer of at least 26 bytes.
      * @param epochSeconds Seconds since the start of the input epoch.
-     * @param utcOffsetHours The input and output offset from UTC in hours.
+     * @param utcOffsetSeconds The input and output offset from UTC in seconds.
+     * The offset must be a whole number of minutes.
      * @param epoch The epoch of the input timestamp.
      */
     static void formatISO8601(char* buffer, timestamp_t epochSeconds,
-                              int8_t utcOffsetHours, epochStart epoch);
+                              int32_t utcOffsetSeconds, epochStart epoch);
 
 #if EPOCHTIME_ENABLE_STRING_FORMATTING
     /**
@@ -335,31 +339,31 @@ class TimeUtils {
      *
      * @param epochSeconds The number of seconds since the start of the given
      * epoch.
-     * @param utcOffsetHours The offset from UTC in **hours** for the printed
-     * time.
+     * @param utcOffsetSeconds The offset from UTC in seconds for the printed
+     * time. The offset must be a whole number of minutes.
      * @param epoch The epoch of the input epoch time.
      * @return An ISO8601 formatted String.
      *
      * @warning This function does **not** change the timezone of the input
      * epoch time. It assumes that the input timestamp value is already in the
-     * correct timezone. The utcOffsetHours parameter is only used for
+     * correct timezone. The utcOffsetSeconds parameter is only used for
      * formatting the output string.
      */
-    static String formatISO8601(timestamp_t epochSeconds, int8_t utcOffsetHours,
-                                epochStart epoch);
+    static String formatISO8601(timestamp_t epochSeconds,
+                                int32_t utcOffsetSeconds, epochStart epoch);
     /**
      * @brief Convert an epochTime object into a ISO8601 formatted String.
      *
      * @param in_time An epochTime object
-     * @param utcOffsetHours The offset from UTC in **hours** for the printed
-     * time.
+     * @param utcOffsetSeconds The offset from UTC in seconds for the printed
+     * time. The offset must be a whole number of minutes.
      * @return An ISO8601 formatted String.
      *
      * @remark This function assumes that the input epochTime object was created
      * with the correct UTC offset. It **will** convert the time to the given
-     * utcOffsetHours for formatting the output String.
+     * utcOffsetSeconds for formatting the output String.
      */
-    static String formatISO8601(epochTime in_time, int8_t utcOffsetHours);
+    static String formatISO8601(epochTime in_time, int32_t utcOffsetSeconds);
 #endif
 
 #if EPOCHTIME_ENABLE_STRFTIME
@@ -558,12 +562,12 @@ class TimeUtils {
      *
      * @param ts The timestamp to check (in seconds since the start of the given
      * epoch).
-     * @param utcOffsetHours The offset of the epoch time from UTC in hours.
+     * @param utcOffsetSeconds The offset of the epoch time from UTC in seconds.
      * @param epoch The type of epoch to use (i.e., the standard for the start
      * of the epoch).
      * @return True if the given time passes sanity range checking.
      */
-    static bool isTimeSane(timestamp_t ts, int8_t utcOffsetHours,
+    static bool isTimeSane(timestamp_t ts, int32_t utcOffsetSeconds,
                            epochStart epoch);
     /**
      * @brief Check that a given epoch time (an epochTime object) is within a
