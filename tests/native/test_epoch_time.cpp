@@ -118,6 +118,14 @@ void testOffsetAndEpochConversions() {
     CHECK_EQUAL("GPS round trip", unixUtc,
                 TimeUtils::convertEpoch(gps, epochStart::gps_epoch,
                                         epochStart::unix_epoch));
+    CHECK_EQUAL("GPS second before first leap threshold", 362793599LL,
+                TimeUtils::convertEpoch(static_cast<timestamp_t>(46828799LL),
+                                        epochStart::gps_epoch,
+                                        epochStart::unix_epoch));
+    CHECK_EQUAL("first GPS leap second", 362793599LL,
+                TimeUtils::convertEpoch(static_cast<timestamp_t>(46828800LL),
+                                        epochStart::gps_epoch,
+                                        epochStart::unix_epoch));
 
     CHECK_EQUAL("GPS offset normalized before leap conversion", 362793600LL,
                 TimeUtils::convertOffsetAndEpoch(
@@ -137,6 +145,8 @@ void testFormattingAndSanity() {
     TimeUtils::formatISO8601(buffer, localTime, 14);
     CHECK_STRING("epochTime ISO conversion", "2026-07-01T14:00:00+14:00",
                  buffer);
+    TimeUtils::formatISO8601(buffer, localTime, -128);
+    CHECK_STRING("ISO offset exceeding two digits is rejected", "", buffer);
 
     TimeUtils::formatDateTime(buffer, "%Y-%m-%d %H:%M:%S", localTime);
     CHECK_STRING("epochTime unchecked-buffer formatter",

@@ -266,6 +266,7 @@ void testFormattingAndSanity() {
     char smallBuffer[8] = {'x', 'x', 'x', 'x', 'x', 'x', 'x', '\0'};
     TimeUtils::formatDateTime(smallBuffer, sizeof(smallBuffer), "%Y-%m-%d",
                               localTime);
+    CHECK_EQUAL("small format buffer is written", 1, smallBuffer[0] != 'x');
     CHECK_EQUAL("small format buffer is null-terminated", 0,
                 smallBuffer[sizeof(smallBuffer) - 1]);
 

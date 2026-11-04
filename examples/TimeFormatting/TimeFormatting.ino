@@ -346,8 +346,15 @@ void setup() {
     Serial.println(TimeUtils::formatISO8601(myEpochTime, -5));
     Serial.print(F("ISO 8601, input timezone, from a single timestamp (assumes "
                    "input and output are in the same timezone): "));
-    Serial.println(TimeUtils::formatISO8601(
-        myTimestamp, static_cast<int8_t>(myUtcOffsetSeconds / 3600), myEpoch));
+    if (myUtcOffsetSeconds % 3600L == 0 && myUtcOffsetSeconds >= -99L * 3600L &&
+        myUtcOffsetSeconds <= 99L * 3600L) {
+        Serial.println(TimeUtils::formatISO8601(
+            myTimestamp, static_cast<int8_t>(myUtcOffsetSeconds / 3600L),
+            myEpoch));
+    } else {
+        Serial.println(F("unsupported (ISO formatter requires whole-hour "
+                         "offsets)"));
+    }
 #if EPOCHTIME_ENABLE_STRFTIME
     Serial.print(F("Custom Format, from an epochTime object (input offset "
                    "preserved): "));
@@ -364,8 +371,7 @@ void setup() {
     Serial.println(F("-----------------------"));
     Serial.println(F("Is the timestamp sane? "));
     Serial.println(TimeUtils::isTimeSane(
-                       myTimestamp,
-                       static_cast<int8_t>(myUtcOffsetSeconds / 3600), myEpoch)
+                       epochTime(myTimestamp, myUtcOffsetSeconds, myEpoch))
                        ? F("Yes")
                        : F("No"));
     Serial.println(F("Is the epochTime sane? "));

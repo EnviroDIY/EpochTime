@@ -43,8 +43,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   boundaries are handled correctly.
 - Keep scalar `time_t` values in UTC while respecting each core's epoch and
   width, and correct the detected core UTC-offset sign.
-- Honor per-value `tm` offsets when supported and compare `tm` values by the
-  instants they represent.
+- Retain per-value `tm` offsets for formatting when supported, but ignore them
+  during conversion by `tmToEpochTime()` and comparison by `sameTime()`.
 - Prevent out-of-bounds reads when `strftime()` output exceeds the internal
   String-formatting buffer, and add size-checked buffer overloads.
 - Correct the documented and printed GPS epoch start to January 6, 1980.
