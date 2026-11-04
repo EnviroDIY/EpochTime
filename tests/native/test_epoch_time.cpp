@@ -143,8 +143,8 @@ void testFormattingAndSanity() {
     CHECK_STRING("raw ISO offset in seconds", "2026-06-30T19:00:00-05:00",
                  buffer);
     TimeUtils::formatISO8601(buffer, local, -5, epochStart::unix_epoch);
-    CHECK_STRING("raw legacy ISO offset in hours",
-                 "2026-06-30T19:00:00-05:00", buffer);
+    CHECK_STRING("raw legacy ISO offset in hours", "2026-06-30T19:00:00-05:00",
+                 buffer);
     TimeUtils::formatISO8601(buffer, localTime, 14 * 3600L);
     CHECK_STRING("epochTime ISO conversion", "2026-07-01T14:00:00+14:00",
                  buffer);
@@ -214,6 +214,14 @@ void testFormattingAndSanity() {
     CHECK_EQUAL("one second before sane range", 0,
                 TimeUtils::isTimeSane(earliestLocal - 1, estUtcOffsetSeconds,
                                       epochStart::unix_epoch));
+    CHECK_EQUAL("latest sane instant", 1,
+                TimeUtils::isTimeSane(
+                    static_cast<timestamp_t>(LATEST_SANE_UNIX_TIMESTAMP), 0,
+                    epochStart::unix_epoch));
+    CHECK_EQUAL("one second after sane range", 0,
+                TimeUtils::isTimeSane(
+                    static_cast<timestamp_t>(LATEST_SANE_UNIX_TIMESTAMP) + 1, 0,
+                    epochStart::unix_epoch));
     CHECK_EQUAL("epochTime sanity overload", 1,
                 TimeUtils::isTimeSane(epochTime(unixUtc)));
 }
