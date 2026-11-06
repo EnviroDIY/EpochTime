@@ -1189,7 +1189,8 @@ EXCLUDE_SYMBOLS        =
 # that contain example code fragments that are included (see the \include
 # command).
 
-EXAMPLE_PATH           = ../examples
+EXAMPLE_PATH           = ../examples \
+                         ../extras
 
 # If the value of the EXAMPLE_PATH tag contains directories, you can use the
 # EXAMPLE_PATTERNS tag to specify one or more wildcard pattern (like *.cpp and
@@ -2636,7 +2637,9 @@ PREDEFINED             = DOXYGEN=1 \
                          ARDUINO=10808 \
                          __AVR_ATmega1284P__ \
                          NEOSWSERIAL_EXTERNAL_PCINT \
-                         SERIAL_PORT_USBVIRTUAL=0
+                         SERIAL_PORT_USBVIRTUAL=0 \
+                         EPOCHTIME_ENABLE_STRING_FORMATTING=1 \
+                         EPOCHTIME_ENABLE_STRFTIME=1
 
 # If the MACRO_EXPANSION and EXPAND_ONLY_PREDEF tags are set to YES then this
 # tag can be used to specify a list of macro names that should be expanded. The

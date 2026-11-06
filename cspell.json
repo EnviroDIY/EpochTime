@@ -70,22 +70,33 @@
   "words": [
     "Adafruit",
     "Arduinos",
+    "Atmel",
     "Damiano",
+    "doxyfile",
     "EnviroDIY",
     "EpochTime",
     "Geleskie",
     "gmtime",
+    "Mbed",
+    "Renesas",
+    "SAMD",
     "Sodaq",
-    "SRGDamia1"
+    "SRGDamia1",
+    "tzcode"
   ],
   "ignoreWords": [],
   "import": [],
   "ignorePaths": [
+    ".vscode",
+    ".gitignore",
+    ".clang-format",
+    ".clang-tidy",
     "platformio.ini",
     "*doxyfile*",
-    ".vscode",
     "docs/Doxyfile",
     ".github/**/*.yaml",
-    ".github/**/*.yml"
+    ".github/**/*.yml",
+    ".gitignore",
+    "tests/run_native_tests.ps1"
   ]
 }

@@ -26,11 +26,28 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Changed
 
+- Standardize all UTC-offset parameters, stored values, and internal variables on signed seconds, including every `formatISO8601()` overload and the timestamp overload of `isTimeSane()`.
+- Preserve source compatibility by interpreting UTC-offset arguments from -24 through +24 as legacy hour values in `formatISO8601()` and `isTimeSane()`.
+
 ### Added
 
 ### Removed
 
 ### Fixed
+
+- Preserve the input UTC offset when formatting an `epochTime` with
+  `formatDateTime()`.
+- Support fractional-hour UTC offsets in ISO 8601 output.
+- Normalize UTC offsets before converting between epochs so GPS leap-second
+  boundaries are handled correctly.
+- Keep scalar `time_t` values in UTC while respecting each core's epoch and
+  width, and correct the detected core UTC-offset sign.
+- Retain per-value `tm` offsets for formatting when supported, but ignore them
+  during conversion by `tmToEpochTime()` and comparison by `sameTime()`.
+- Prevent out-of-bounds reads when `strftime()` output exceeds the internal
+  String-formatting buffer, and add size-checked buffer overloads.
+- Correct the documented and printed GPS epoch start to January 6, 1980.
+- Preserve full-width timestamps while counting GPS leap seconds.
 
 ***
 
@@ -55,8 +72,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
-- Added two functions for filling tm objects: `fillTimeParts(epochTime in_time, tm& timeParts)` and `fillTimeParts(timestamp_t in_timestamp, int32_t in_utcOffset, epochStart in_epoch, tm& timeParts)`
-- Added two functions for getting a time_t `getTimeT(epochTime in_time)` and `getTimeT(timestamp_t in_timestamp, int32_t in_utcOffset = 0, epochStart in_epoch = epochStart::unix_epoch)`
+- Added two functions for filling tm objects: `fillTimeParts(epochTime in_time, tm& timeParts)` and `fillTimeParts(timestamp_t in_timestamp, int32_t in_utcOffsetSeconds, epochStart in_epoch, tm& timeParts)`
+- Added two functions for getting a time_t `getTimeT(epochTime in_time)` and `getTimeT(timestamp_t in_timestamp, int32_t in_utcOffsetSeconds = 0, epochStart in_epoch = epochStart::unix_epoch)`
 - Added one function for getting an EpochTime from a tm struct: `epochTime tmToEpochTime(tm timeParts);`
 - Added a function to compare two tm structs: `sameTime(const tm& a, const tm& b)`
 
