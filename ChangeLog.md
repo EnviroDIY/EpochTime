@@ -14,6 +14,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - [ChangeLog](#changelog)
   - [Unreleased](#unreleased)
+  - [1.2.0](#120)
   - [1.1.1](#111)
   - [1.1.0](#110)
   - [1.0.0](#100)
@@ -26,26 +27,29 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Changed
 
-- Standardize all UTC-offset parameters, stored values, and internal variables on signed seconds, including every `formatISO8601()` overload and the timestamp overload of `isTimeSane()`.
-- Preserve source compatibility by interpreting UTC-offset arguments from -24 through +24 as legacy hour values in `formatISO8601()` and `isTimeSane()`.
-
 ### Added
 
 ### Removed
 
 ### Fixed
 
-- Preserve the input UTC offset when formatting an `epochTime` with
-  `formatDateTime()`.
+***
+
+## [1.2.0]
+
+### Changed
+
+- Standardize all UTC-offset parameters, stored values, and internal variables on signed seconds, including every `formatISO8601()` overload and the timestamp overload of `isTimeSane()`.
+- Preserve source compatibility by interpreting UTC-offset arguments from -24 through +24 as legacy hour values in `formatISO8601()` and `isTimeSane()`.
+
+### Fixed
+
+- Preserve the input UTC offset when formatting an `epochTime` with `formatDateTime()`.
 - Support fractional-hour UTC offsets in ISO 8601 output.
-- Normalize UTC offsets before converting between epochs so GPS leap-second
-  boundaries are handled correctly.
-- Keep scalar `time_t` values in UTC while respecting each core's epoch and
-  width, and correct the detected core UTC-offset sign.
-- Retain per-value `tm` offsets for formatting when supported, but ignore them
-  during conversion by `tmToEpochTime()` and comparison by `sameTime()`.
-- Prevent out-of-bounds reads when `strftime()` output exceeds the internal
-  String-formatting buffer, and add size-checked buffer overloads.
+- Normalize UTC offsets before converting between epochs so GPS leap-second boundaries are handled correctly.
+- Keep scalar `time_t` values in UTC while respecting each core's epoch and width, and correct the detected core UTC-offset sign.
+- Retain per-value `tm` offsets for formatting when supported, but ignore them  during conversion by `tmToEpochTime()` and comparison by `sameTime()`.
+- Prevent out-of-bounds reads when `strftime()` output exceeds the internal String-formatting buffer, and add size-checked buffer overloads.
 - Correct the documented and printed GPS epoch start to January 6, 1980.
 - Preserve full-width timestamps while counting GPS leap seconds.
 
@@ -89,7 +93,8 @@ Initial release, taking code from the ModularSensors library
 
 ***
 
-[Unreleased]: https://github.com/EnviroDIY/EpochTime/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/EnviroDIY/EpochTime/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/EnviroDIY/EpochTime/releases/tag/v1.2.0
 [1.1.1]: https://github.com/EnviroDIY/EpochTime/releases/tag/v1.1.1
 [1.1.0]: https://github.com/EnviroDIY/EpochTime/releases/tag/v1.1.0
 [1.0.0]: https://github.com/EnviroDIY/EpochTime/releases/tag/v1.0.0
