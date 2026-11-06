@@ -309,8 +309,8 @@ timestamp_t TimeUtils::convertEpoch(timestamp_t in_timestamp,
 timestamp_t TimeUtils::convertTZOffset(timestamp_t in_timestamp,
                                        int32_t     in_utcOffsetSeconds,
                                        int32_t     out_utcOffsetSeconds) {
-    return in_timestamp + (static_cast<int64_t>(out_utcOffsetSeconds) -
-                           in_utcOffsetSeconds);
+    return in_timestamp +
+        (static_cast<int64_t>(out_utcOffsetSeconds) - in_utcOffsetSeconds);
 }
 
 timestamp_t TimeUtils::convertOffsetAndEpoch(timestamp_t in_timestamp,
@@ -318,15 +318,69 @@ timestamp_t TimeUtils::convertOffsetAndEpoch(timestamp_t in_timestamp,
                                              epochStart  in_epoch,
                                              int32_t     out_utcOffsetSeconds,
                                              epochStart  out_epoch) {
-    // First convert to UTC timestamp, then convert between epochs, and finally
-    // apply the output timezone offset. If we convert the epoch in the local
-    // time zone first, the conversion to the GPS epoch could be incorrect due
-    // to the offset screwing up the leap seconds.
-    const timestamp_t utcTimestamp = convertTZOffset(in_timestamp,
-                                                     in_utcOffsetSeconds, 0);
-    const timestamp_t convertedTimestamp = convertEpoch(utcTimestamp, in_epoch,
-                                                        out_epoch);
-    return convertTZOffset(convertedTimestamp, 0, out_utcOffsetSeconds);
+    // if the epoch didn't change, just convert the timezone offset
+    if (in_epoch == out_epoch) {
+        return TimeUtils::convertTZOffset(in_timestamp, in_utcOffsetSeconds,
+                                          out_utcOffsetSeconds);
+    }
+    // if the timezone offset didn't change, just convert the epoch
+    if (in_utcOffsetSeconds == out_utcOffsetSeconds) {
+        return TimeUtils::convertEpoch(in_timestamp, in_epoch, out_epoch);
+    }
+
+    // If both the timezone and the epoch changed, we need to be more careful.
+
+    // First convert to a UTC timestamp, so we can be sure the epoch conversion
+    // is done correctly.  The leap seconds are accounted for in the UTC time.
+    const int64_t utcTimestamp = static_cast<int64_t>(in_timestamp) -
+        in_utcOffsetSeconds;
+
+    // Normalize to Unix time without casting a negative, pre-epoch GPS value
+    // to an unsigned timestamp_t. No GPS leap seconds precede the GPS epoch.
+    int64_t unixTimestamp;
+    switch (in_epoch) {
+        case epochStart::unix_epoch: unixTimestamp = utcTimestamp; break;
+        case epochStart::y2k_epoch:
+            unixTimestamp = utcTimestamp + EPOCH_UNIX_TO_Y2K;
+            break;
+        case epochStart::gps_epoch:
+            unixTimestamp = utcTimestamp < 0
+                ? utcTimestamp + EPOCH_UNIX_TO_GPS
+                : static_cast<int64_t>(TimeUtils::gps2unix(
+                      static_cast<timestamp_t>(utcTimestamp)));
+            break;
+        case epochStart::nist_epoch:
+            unixTimestamp = utcTimestamp - EPOCH_NIST_TO_UNIX;
+            break;
+        default:
+            return static_cast<timestamp_t>(utcTimestamp +
+                                            out_utcOffsetSeconds);
+    }
+
+    // Now convert from the normalized Unix timestamp to the desired output
+    // epoch.
+    int64_t convertedTimestamp;
+    switch (out_epoch) {
+        case epochStart::unix_epoch: convertedTimestamp = unixTimestamp; break;
+        case epochStart::y2k_epoch:
+            convertedTimestamp = unixTimestamp - EPOCH_UNIX_TO_Y2K;
+            break;
+        case epochStart::gps_epoch:
+            convertedTimestamp = unixTimestamp < EPOCH_UNIX_TO_GPS
+                ? unixTimestamp - EPOCH_UNIX_TO_GPS
+                : static_cast<int64_t>(TimeUtils::unix2gps(
+                      static_cast<timestamp_t>(unixTimestamp)));
+            break;
+        case epochStart::nist_epoch:
+            convertedTimestamp = unixTimestamp + EPOCH_NIST_TO_UNIX;
+            break;
+        default:
+            return static_cast<timestamp_t>(utcTimestamp +
+                                            out_utcOffsetSeconds);
+    }
+
+    // Finally, apply the output timezone offset to the converted timestamp.
+    return static_cast<timestamp_t>(convertedTimestamp + out_utcOffsetSeconds);
 }
 
 timestamp_t TimeUtils::getTimestamp(epochTime  in_time,

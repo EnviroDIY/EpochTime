@@ -183,10 +183,20 @@ void testOffsetAndEpochConversions() {
     CHECK_EQUAL("GPS round trip", unixUtc,
                 TimeUtils::convertEpoch(gps, epochStart::gps_epoch,
                                         epochStart::unix_epoch));
+    CHECK_EQUAL("same-epoch GPS leap second is preserved", 46828800LL,
+                TimeUtils::convertOffsetAndEpoch(
+                    static_cast<timestamp_t>(46828800LL), 0,
+                    epochStart::gps_epoch, 0, epochStart::gps_epoch));
     CHECK_EQUAL("GPS offset is normalized before leap conversion", 362793600LL,
                 TimeUtils::convertOffsetAndEpoch(
                     static_cast<timestamp_t>(46810801LL), estUtcOffsetSeconds,
                     epochStart::gps_epoch, 0, epochStart::unix_epoch));
+
+    epochTime preGpsTime(0, 3600, epochStart::gps_epoch);
+    CHECK_EQUAL("pre-epoch GPS offset excludes leap seconds", 315961200LL,
+                preGpsTime.getTimestamp());
+    CHECK_EQUAL("pre-epoch GPS offset round trips", 0,
+                preGpsTime.getTimestamp(3600, epochStart::gps_epoch));
 }
 
 void testFormattingAndSanity() {
@@ -452,8 +462,8 @@ void testWideGpsTimestamps() {
         return;
     }
 
-    const timestamp_t gps = static_cast<timestamp_t>(UINT32_MAX) +
-        static_cast<timestamp_t>(1000000LL);
+    const timestamp_t gps = static_cast<timestamp_t>(
+        static_cast<uint64_t>(UINT32_MAX) + 1000000ULL);
     const timestamp_t expectedUnix = gps + EPOCH_UNIX_TO_GPS - 18;
     CHECK_EQUAL("wide GPS conversion counts all leap seconds", expectedUnix,
                 TimeUtils::convertEpoch(gps, epochStart::gps_epoch,
