@@ -21,7 +21,6 @@
     !defined(EPOCHTIME_DISABLE_STRING_FORMATTING)
 /// Enable string formatting by default if not explicitly disabled
 #define EPOCHTIME_ENABLE_STRING_FORMATTING 1
-#pragma(message("EPOCHTIME_ENABLE_STRING_FORMATTING is disabled"))
 #endif
 
 // Set EPOCHTIME_ENABLE_STRFTIME to 0 or set EPOCHTIME_DISABLE_STRFTIME to 1 to
@@ -31,7 +30,14 @@
     (defined(EPOCHTIME_DISABLE_STRFTIME) && EPOCHTIME_DISABLE_STRFTIME != 0)
 /// Disable strftime-based formatting if explicitly requested
 #define EPOCHTIME_ENABLE_STRFTIME 0
-#pragma(message("EPOCHTIME_ENABLE_STRFTIME is enabled"))
+#endif
+
+// print messages if non-default build configs
+#if !EPOCHTIME_ENABLE_STRING_FORMATTING
+#pragma message("EPOCHTIME_ENABLE_STRING_FORMATTING is disabled")
+#endif
+#if EPOCHTIME_ENABLE_STRFTIME
+#pragma message("EPOCHTIME_ENABLE_STRFTIME is enabled")
 #endif
 
 // Include other in-library and external dependencies

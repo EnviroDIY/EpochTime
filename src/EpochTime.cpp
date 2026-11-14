@@ -69,7 +69,7 @@ void TimeUtils::formatISO8601(char* buffer, epochTime in_time,
         buffer[0] = '\0';
         return;
     }
-    tm timeParts = {};
+    tm timeParts;
     if (!fillTimeParts(in_time, utcOffsetSeconds, timeParts)) {
         buffer[0] = '\0';
         return;
@@ -148,7 +148,7 @@ size_t TimeUtils::formatTimestamp(char* buffer, size_t bufferSize,
     }
     if (bufferSize < requiredSize) { return 0; }
 
-    tm timeParts = {};
+    tm timeParts;
     if (!fillTimeParts(in_time, in_time._utcOffsetSeconds, timeParts)) {
         return 0;
     }
