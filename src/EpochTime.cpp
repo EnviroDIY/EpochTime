@@ -13,15 +13,16 @@
 
 namespace {
 
-int32_t normalizeUtcOffsetSeconds(int32_t utcOffsetSeconds) {
-    // Releases through 1.1.1 accepted hours in formatISO8601() and
-    // isTimeSane(). Preserve those calls while standardizing the API on
-    // seconds. Real-world UTC offsets expressed in seconds exceed this range,
-    // except UTC itself.
-    if (utcOffsetSeconds >= -24 && utcOffsetSeconds <= 24) {
-        return utcOffsetSeconds * 3600L;
-    }
-    return utcOffsetSeconds;
+void writeTwoDigits(char* output, uint8_t value) {
+    output[0] = static_cast<char>('0' + value / 10U);
+    output[1] = static_cast<char>('0' + value % 10U);
+}
+
+void writeFourDigits(char* output, uint16_t value) {
+    output[0] = static_cast<char>('0' + (value / 1000U) % 10U);
+    output[1] = static_cast<char>('0' + (value / 100U) % 10U);
+    output[2] = static_cast<char>('0' + (value / 10U) % 10U);
+    output[3] = static_cast<char>('0' + value % 10U);
 }
 
 }  // namespace
@@ -52,12 +53,15 @@ timestamp_t epochTime::getTimestamp(int32_t    out_utcOffsetSeconds,
     return TimeUtils::getTimestamp(*this, out_utcOffsetSeconds, out_epoch);
 }
 
+void TimeUtils::formatISO8601(char* buffer, epochTime in_time) {
+    formatISO8601(buffer, in_time, in_time._utcOffsetSeconds);
+}
+
 // Format an epoch time as ISO8601 without using strftime(), snprintf(), or
-// intermediate String objects.  The caller must provide at least 26 bytes.
+// intermediate String objects. The caller must provide at least 26 bytes.
 void TimeUtils::formatISO8601(char* buffer, epochTime in_time,
                               int32_t utcOffsetSeconds) {
-    _ensureInitialized();
-    utcOffsetSeconds = normalizeUtcOffsetSeconds(utcOffsetSeconds);
+    if (buffer == nullptr) { return; }
     constexpr int32_t maxIsoUtcOffsetSeconds = 99L * 3600L + 59L * 60L;
     if (utcOffsetSeconds < -maxIsoUtcOffsetSeconds ||
         utcOffsetSeconds > maxIsoUtcOffsetSeconds ||
@@ -65,54 +69,35 @@ void TimeUtils::formatISO8601(char* buffer, epochTime in_time,
         buffer[0] = '\0';
         return;
     }
-    // Get a single number timestamp representing the input time in the
-    // processor core's epoch and the requested output offset before using
-    // gmtime().  The gmtime function expects the time_t to be in UTC and
-    // returns a tm struct representing UTC time; the important point being
-    // that gmtime does not apply any timezone offset to the input time.   So if
-    // we want the final time to be in a different offset, apply that offset
-    // first ands gmtime() will be none-the-wiser about the offset.
-    // NOTE: gmtime requires a true time_t (in whatever size the core uses) as
-    // input!
-    time_t t = static_cast<time_t>(TimeUtils::getTimestamp(
-        in_time, utcOffsetSeconds, TimeUtils::_core_epoch));
-
-    // Now use gmtime() to get the broken-down UTC time corresponding to the
-    // adjusted timestamp.
-    tm* tmp = gmtime(&t);
-    if (tmp == nullptr) {
+    tm timeParts = {};
+    if (!fillTimeParts(in_time, utcOffsetSeconds, timeParts)) {
         buffer[0] = '\0';
         return;
     }
-    tm timeParts = *tmp;
 
-    const int16_t year   = static_cast<int16_t>(timeParts.tm_year + 1900);
-    uint8_t       month  = static_cast<uint8_t>(timeParts.tm_mon + 1);
-    uint8_t       day    = static_cast<uint8_t>(timeParts.tm_mday);
-    uint8_t       hour   = static_cast<uint8_t>(timeParts.tm_hour);
-    uint8_t       minute = static_cast<uint8_t>(timeParts.tm_min);
-    uint8_t       second = static_cast<uint8_t>(timeParts.tm_sec);
+    const int32_t year = static_cast<int32_t>(timeParts.tm_year) + 1900L;
+    if (year < 0 || year > 9999) {
+        buffer[0] = '\0';
+        return;
+    }
+    uint8_t month  = static_cast<uint8_t>(timeParts.tm_mon + 1);
+    uint8_t day    = static_cast<uint8_t>(timeParts.tm_mday);
+    uint8_t hour   = static_cast<uint8_t>(timeParts.tm_hour);
+    uint8_t minute = static_cast<uint8_t>(timeParts.tm_min);
+    uint8_t second = static_cast<uint8_t>(timeParts.tm_sec);
 
     // YYYY-MM-DDThh:mm:ss
-    buffer[0]  = static_cast<char>('0' + (year / 1000) % 10);
-    buffer[1]  = static_cast<char>('0' + (year / 100) % 10);
-    buffer[2]  = static_cast<char>('0' + (year / 10) % 10);
-    buffer[3]  = static_cast<char>('0' + year % 10);
-    buffer[4]  = '-';
-    buffer[5]  = static_cast<char>('0' + month / 10);
-    buffer[6]  = static_cast<char>('0' + month % 10);
-    buffer[7]  = '-';
-    buffer[8]  = static_cast<char>('0' + day / 10);
-    buffer[9]  = static_cast<char>('0' + day % 10);
+    writeFourDigits(buffer, static_cast<uint16_t>(year));
+    buffer[4] = '-';
+    writeTwoDigits(buffer + 5, month);
+    buffer[7] = '-';
+    writeTwoDigits(buffer + 8, day);
     buffer[10] = 'T';
-    buffer[11] = static_cast<char>('0' + hour / 10);
-    buffer[12] = static_cast<char>('0' + hour % 10);
+    writeTwoDigits(buffer + 11, hour);
     buffer[13] = ':';
-    buffer[14] = static_cast<char>('0' + minute / 10);
-    buffer[15] = static_cast<char>('0' + minute % 10);
+    writeTwoDigits(buffer + 14, minute);
     buffer[16] = ':';
-    buffer[17] = static_cast<char>('0' + second / 10);
-    buffer[18] = static_cast<char>('0' + second % 10);
+    writeTwoDigits(buffer + 17, second);
 
     // Keep the output construction explicit rather than invoking printf-family
     // formatting.
@@ -127,19 +112,110 @@ void TimeUtils::formatISO8601(char* buffer, epochTime in_time,
         static_cast<uint8_t>(absoluteUtcOffsetMinutes % 60U);
 
     buffer[19] = sign;
-    buffer[20] = static_cast<char>('0' + absoluteUtcOffsetHours / 10);
-    buffer[21] = static_cast<char>('0' + absoluteUtcOffsetHours % 10);
+    writeTwoDigits(buffer + 20, absoluteUtcOffsetHours);
     buffer[22] = ':';
-    buffer[23] = static_cast<char>('0' + remainingUtcOffsetMinutes / 10);
-    buffer[24] = static_cast<char>('0' + remainingUtcOffsetMinutes % 10);
+    writeTwoDigits(buffer + 23, remainingUtcOffsetMinutes);
     buffer[25] = '\0';
 }
 
 void TimeUtils::formatISO8601(char* buffer, timestamp_t epochSeconds,
                               int32_t utcOffsetSeconds, epochStart epoch) {
-    utcOffsetSeconds = normalizeUtcOffsetSeconds(utcOffsetSeconds);
     formatISO8601(buffer, epochTime(epochSeconds, utcOffsetSeconds, epoch),
                   utcOffsetSeconds);
+}
+
+size_t TimeUtils::formatTimestamp(char* buffer, size_t bufferSize,
+                                  epochTime in_time, fixedTimeFormat format) {
+    if (buffer == nullptr || bufferSize == 0) { return 0; }
+    buffer[0] = '\0';
+
+    size_t requiredSize;
+    size_t outputLength;
+    switch (format) {
+        case fixedTimeFormat::compact_date:
+            requiredSize = 9;
+            outputLength = 8;
+            break;
+        case fixedTimeFormat::compact_date_time:
+            requiredSize = 16;
+            outputLength = 15;
+            break;
+        case fixedTimeFormat::calendar_date_time:
+            requiredSize = 20;
+            outputLength = 19;
+            break;
+        default: return 0;
+    }
+    if (bufferSize < requiredSize) { return 0; }
+
+    tm timeParts = {};
+    if (!fillTimeParts(in_time, in_time._utcOffsetSeconds, timeParts)) {
+        return 0;
+    }
+    const int32_t year = static_cast<int32_t>(timeParts.tm_year) + 1900L;
+    if (year < 0 || year > 9999) { return 0; }
+
+    writeFourDigits(buffer, static_cast<uint16_t>(year));
+    const uint8_t month  = static_cast<uint8_t>(timeParts.tm_mon + 1);
+    const uint8_t day    = static_cast<uint8_t>(timeParts.tm_mday);
+    const uint8_t hour   = static_cast<uint8_t>(timeParts.tm_hour);
+    const uint8_t minute = static_cast<uint8_t>(timeParts.tm_min);
+    const uint8_t second = static_cast<uint8_t>(timeParts.tm_sec);
+
+    if (format == fixedTimeFormat::calendar_date_time) {
+        buffer[4] = '-';
+        writeTwoDigits(buffer + 5, month);
+        buffer[7] = '-';
+        writeTwoDigits(buffer + 8, day);
+        buffer[10] = ' ';
+        writeTwoDigits(buffer + 11, hour);
+        buffer[13] = ':';
+        writeTwoDigits(buffer + 14, minute);
+        buffer[16] = ':';
+        writeTwoDigits(buffer + 17, second);
+    } else {
+        writeTwoDigits(buffer + 4, month);
+        writeTwoDigits(buffer + 6, day);
+        if (format == fixedTimeFormat::compact_date_time) {
+            buffer[8] = '_';
+            writeTwoDigits(buffer + 9, hour);
+            writeTwoDigits(buffer + 11, minute);
+            writeTwoDigits(buffer + 13, second);
+        }
+    }
+    buffer[outputLength] = '\0';
+    return outputLength;
+}
+
+size_t TimeUtils::formatUtcOffset(char* buffer, size_t bufferSize,
+                                  int32_t utcOffsetSeconds) {
+    if (buffer == nullptr || bufferSize == 0) { return 0; }
+    buffer[0] = '\0';
+    if (utcOffsetSeconds % 60L != 0) { return 0; }
+    if (utcOffsetSeconds == 0) {
+        if (bufferSize < 2) { return 0; }
+        buffer[0] = 'Z';
+        buffer[1] = '\0';
+        return 1;
+    }
+    if (bufferSize < 7) { return 0; }
+
+    const int64_t     absoluteUtcOffsetSeconds = utcOffsetSeconds < 0
+        ? -static_cast<int64_t>(utcOffsetSeconds)
+        : static_cast<int64_t>(utcOffsetSeconds);
+    constexpr int32_t maxUtcOffsetSeconds      = 99L * 3600L + 59L * 60L;
+    if (absoluteUtcOffsetSeconds > maxUtcOffsetSeconds) { return 0; }
+
+    const uint16_t absoluteUtcOffsetMinutes =
+        static_cast<uint16_t>(absoluteUtcOffsetSeconds / 60L);
+    buffer[0] = utcOffsetSeconds < 0 ? '-' : '+';
+    writeTwoDigits(buffer + 1,
+                   static_cast<uint8_t>(absoluteUtcOffsetMinutes / 60U));
+    buffer[3] = ':';
+    writeTwoDigits(buffer + 4,
+                   static_cast<uint8_t>(absoluteUtcOffsetMinutes % 60U));
+    buffer[6] = '\0';
+    return 6;
 }
 
 #if EPOCHTIME_ENABLE_STRING_FORMATTING
@@ -254,7 +330,7 @@ String TimeUtils::printEpochStart(epochStart epoch) {
 
 bool TimeUtils::isTimeSane(timestamp_t ts, int32_t utcOffsetSeconds,
                            epochStart epoch) {
-    utcOffsetSeconds = normalizeUtcOffsetSeconds(utcOffsetSeconds);
+    // utcOffsetSeconds = normalizeUtcOffsetSeconds(utcOffsetSeconds);
     return isTimeSane(epochTime(ts, utcOffsetSeconds, epoch));
 }
 bool TimeUtils::isTimeSane(epochTime in_time) {
@@ -433,45 +509,44 @@ epochTime TimeUtils::tmToEpochTime(tm timeParts) {
     return result;
 }
 
-void TimeUtils::fillTimeParts(epochTime in_time, tm& timeParts) {
-    _ensureInitialized();
-    // Get a timestamp in the processor's epoch and UTC timezone
-    timestamp_t coreTime = TimeUtils::convertEpoch(
-        static_cast<timestamp_t>(in_time._unixUTCTimestamp),
-        epochStart::unix_epoch, TimeUtils::getCoreEpochStart());
-    // cast back from timestamp_t to time_t; gmtime requires a true time_t (in
-    // whatever size the core uses) as input!
-    time_t gmtimeTime = static_cast<time_t>(coreTime);
-    // convert the time stamp pointed to by gmtimeTime into broken-down time,
-    // without doing any time-zone conversion.  The gmtime_r function treats the
-    // input as UTC and gives an output in UTC.
-    gmtime_r(&gmtimeTime, &timeParts);
-
-#ifdef __TM_GMTOFF
-    // A UTC tm should report UTC.
-    timeParts.__TM_GMTOFF = 0;
-#endif
-}
-
-void TimeUtils::fillTimeParts(timestamp_t in_timestamp,
-                              int32_t in_utcOffsetSeconds, epochStart in_epoch,
+bool TimeUtils::fillTimeParts(epochTime in_time, int32_t utcOffsetSeconds,
                               tm& timeParts) {
     _ensureInitialized();
-    // Convert the input timestamp to the processor's epoch and UTC timezone
-    timestamp_t coreTime = TimeUtils::convertOffsetAndEpoch(
-        in_timestamp, in_utcOffsetSeconds, in_epoch, 0,
-        TimeUtils::getCoreEpochStart());
+    // Get a timestamp in the processor's epoch and requested offset
+    const timestamp_t coreTime = TimeUtils::getTimestamp(
+        in_time, utcOffsetSeconds, TimeUtils::getCoreEpochStart());
     // cast back from timestamp_t to time_t; gmtime requires a true time_t (in
     // whatever size the core uses) as input!
     time_t gmtimeTime = static_cast<time_t>(coreTime);
-    // convert the time stamp pointed to by gmtimeTime into broken-down time,
-    // without doing any time-zone conversion.  The gmtime_r function treats the
-    // input as UTC and gives an output in UTC.
+#if defined(__AVR__)
+    // AVR libc's gmtime_r() returns void and provides no failure status.
     gmtime_r(&gmtimeTime, &timeParts);
+    // convert the time stamp pointed to by gmtimeTime into broken-down time,
+    // without doing any time-zone conversion.  The gmtime_r function assumes
+    // the input is in UTC and gives an output in UTC.
+#else
+    tm* converted = gmtime_r(&gmtimeTime, &timeParts);
+    if (converted == nullptr) {
+        timeParts = {};
+        return false;
+    }
+#endif
 
 #ifdef __TM_GMTOFF
-    timeParts.__TM_GMTOFF = 0;
+    timeParts.__TM_GMTOFF = utcOffsetSeconds;
 #endif
+    return true;
+}
+
+bool TimeUtils::fillTimeParts(epochTime in_time, tm& timeParts) {
+    return fillTimeParts(in_time, 0, timeParts);
+}
+
+bool TimeUtils::fillTimeParts(timestamp_t in_timestamp,
+                              int32_t in_utcOffsetSeconds, epochStart in_epoch,
+                              tm& timeParts) {
+    return fillTimeParts(epochTime(in_timestamp, in_utcOffsetSeconds, in_epoch),
+                         0, timeParts);
 }
 
 bool TimeUtils::sameTime(const tm& a, const tm& b) {

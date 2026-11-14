@@ -353,6 +353,23 @@ void setup() {
     } else {
         Serial.println(formattedTimestamp);
     }
+    char fixedTimestamp[20] = {};
+    Serial.print(F("Calendar date and time with the retained offset: "));
+    if (TimeUtils::formatTimestamp(fixedTimestamp, sizeof(fixedTimestamp),
+                                   myEpochTime,
+                                   fixedTimeFormat::calendar_date_time) == 0) {
+        Serial.println(F("Unable to format timestamp."));
+    } else {
+        Serial.println(fixedTimestamp);
+    }
+    char utcOffset[7] = {};
+    Serial.print(F("Input UTC offset: "));
+    if (TimeUtils::formatUtcOffset(utcOffset, sizeof(utcOffset),
+                                   myUtcOffsetSeconds) == 0) {
+        Serial.println(F("Unable to format UTC offset."));
+    } else {
+        Serial.println(utcOffset);
+    }
 #if EPOCHTIME_ENABLE_STRFTIME
     Serial.print(F("Custom Format, from an epochTime object (input offset "
                    "preserved): "));

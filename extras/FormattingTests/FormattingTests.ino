@@ -41,8 +41,8 @@ void printInt64(int64_t value) {
     while (length > 0) { Serial.print(digits[--length]); }
 }
 
-void checkEqual(const __FlashStringHelper* name, int64_t expected,
-                int64_t actual, int line) {
+void checkEqual(const __FlashStringHelper* name, const int64_t& expected,
+                const int64_t& actual, int line) {
     ++checks;
     if (expected == actual) {
         Serial.print(F("PASS: "));
@@ -199,6 +199,112 @@ void testOffsetAndEpochConversions() {
                 preGpsTime.getTimestamp(3600, epochStart::gps_epoch));
 }
 
+void testFixedFormatting() {
+    printSection(F("Fixed timestamp formatting"));
+    const timestamp_t unixUtc = static_cast<timestamp_t>(1782864000LL);
+    const int32_t     estUtcOffsetSeconds   = -5 * 3600L;
+    const int32_t     indiaUtcOffsetSeconds = 5 * 3600L + 30 * 60L;
+    const epochTime   utcTime(unixUtc);
+    const epochTime estTime(unixUtc + estUtcOffsetSeconds, estUtcOffsetSeconds);
+    const epochTime indiaTime(unixUtc + indiaUtcOffsetSeconds,
+                              indiaUtcOffsetSeconds);
+    const epochTime crossingTime(unixUtc + 14 * 3600L, 14 * 3600L);
+    char            buffer[26] = {};
+
+    TimeUtils::formatISO8601(buffer, estTime);
+    CHECK_STRING("retained-offset ISO formatter", "2026-06-30T19:00:00-05:00",
+                 buffer);
+    TimeUtils::formatISO8601(buffer, epochTime(unixUtc + 5, 5));
+    CHECK_STRING("retained offset uses exact seconds", "", buffer);
+
+    // clang-format off
+#define CHECK_FIXED_FORMAT(name, expected, inTime, formatValue, expectedLength) \
+    do {                                                                       \
+        CHECK_EQUAL(name " length", expectedLength,                            \
+                    TimeUtils::formatTimestamp(buffer, sizeof(buffer), inTime, \
+                                               formatValue));                  \
+        CHECK_STRING(name, expected, buffer);                                  \
+    } while (0)
+    // clang-format on
+
+    CHECK_FIXED_FORMAT("UTC compact date", "20260701", utcTime,
+                       fixedTimeFormat::compact_date, 8);
+    CHECK_FIXED_FORMAT("UTC compact date and time", "20260701_000000", utcTime,
+                       fixedTimeFormat::compact_date_time, 15);
+    CHECK_FIXED_FORMAT("UTC calendar date and time", "2026-07-01 00:00:00",
+                       utcTime, fixedTimeFormat::calendar_date_time, 19);
+    CHECK_FIXED_FORMAT("UTC-05 compact date", "20260630", estTime,
+                       fixedTimeFormat::compact_date, 8);
+    CHECK_FIXED_FORMAT("UTC-05 compact date and time", "20260630_190000",
+                       estTime, fixedTimeFormat::compact_date_time, 15);
+    CHECK_FIXED_FORMAT("UTC-05 calendar date and time", "2026-06-30 19:00:00",
+                       estTime, fixedTimeFormat::calendar_date_time, 19);
+    CHECK_FIXED_FORMAT("UTC+05:30 compact date", "20260701", indiaTime,
+                       fixedTimeFormat::compact_date, 8);
+    CHECK_FIXED_FORMAT("UTC+05:30 compact date and time", "20260701_053000",
+                       indiaTime, fixedTimeFormat::compact_date_time, 15);
+    CHECK_FIXED_FORMAT("UTC+05:30 calendar date and time",
+                       "2026-07-01 05:30:00", indiaTime,
+                       fixedTimeFormat::calendar_date_time, 19);
+    CHECK_FIXED_FORMAT("date-crossing compact date", "20260701", crossingTime,
+                       fixedTimeFormat::compact_date, 8);
+    CHECK_FIXED_FORMAT("date-crossing compact date and time", "20260701_140000",
+                       crossingTime, fixedTimeFormat::compact_date_time, 15);
+    CHECK_FIXED_FORMAT("date-crossing calendar date and time",
+                       "2026-07-01 14:00:00", crossingTime,
+                       fixedTimeFormat::calendar_date_time, 19);
+    CHECK_FIXED_FORMAT("leap day", "20240229_235959",
+                       epochTime(static_cast<timestamp_t>(1709251199LL)),
+                       fixedTimeFormat::compact_date_time, 15);
+    CHECK_FIXED_FORMAT("year boundary", "20251231_235959",
+                       epochTime(static_cast<timestamp_t>(1767225599LL)),
+                       fixedTimeFormat::compact_date_time, 15);
+    CHECK_FIXED_FORMAT(
+        "earliest sane boundary", "20250101_000000",
+        epochTime(static_cast<timestamp_t>(EARLIEST_SANE_UNIX_TIMESTAMP)),
+        fixedTimeFormat::compact_date_time, 15);
+    CHECK_FIXED_FORMAT(
+        "latest sane boundary", "20350101_000000",
+        epochTime(static_cast<timestamp_t>(LATEST_SANE_UNIX_TIMESTAMP)),
+        fixedTimeFormat::compact_date_time, 15);
+
+#undef CHECK_FIXED_FORMAT
+
+    char exactDate[9] = {};
+    CHECK_EQUAL("exact compact-date buffer", 8,
+                TimeUtils::formatTimestamp(exactDate, sizeof(exactDate),
+                                           utcTime,
+                                           fixedTimeFormat::compact_date));
+    CHECK_EQUAL("exact compact-date buffer terminator", 0, exactDate[8]);
+    char smallBuffer[8] = {'x', 'x', 'x', 'x', 'x', 'x', 'x', '\0'};
+    CHECK_EQUAL("undersized fixed-format buffer", 0,
+                TimeUtils::formatTimestamp(smallBuffer, sizeof(smallBuffer),
+                                           utcTime,
+                                           fixedTimeFormat::compact_date));
+    CHECK_STRING("undersized fixed-format buffer is empty", "", smallBuffer);
+    CHECK_EQUAL("null fixed-format buffer", 0,
+                TimeUtils::formatTimestamp(nullptr, 9, utcTime,
+                                           fixedTimeFormat::compact_date));
+
+    char offsetBuffer[7] = {};
+    CHECK_EQUAL(
+        "UTC offset length", 1,
+        TimeUtils::formatUtcOffset(offsetBuffer, sizeof(offsetBuffer), 0));
+    CHECK_STRING("UTC offset", "Z", offsetBuffer);
+    CHECK_EQUAL("negative UTC offset length", 6,
+                TimeUtils::formatUtcOffset(offsetBuffer, sizeof(offsetBuffer),
+                                           estUtcOffsetSeconds));
+    CHECK_STRING("negative UTC offset", "-05:00", offsetBuffer);
+    CHECK_EQUAL("fractional UTC offset length", 6,
+                TimeUtils::formatUtcOffset(offsetBuffer, sizeof(offsetBuffer),
+                                           indiaUtcOffsetSeconds));
+    CHECK_STRING("fractional UTC offset", "+05:30", offsetBuffer);
+    CHECK_EQUAL(
+        "partial-minute UTC offset is rejected", 0,
+        TimeUtils::formatUtcOffset(offsetBuffer, sizeof(offsetBuffer), 1));
+    CHECK_STRING("rejected UTC offset buffer is empty", "", offsetBuffer);
+}
+
 void testFormattingAndSanity() {
     printSection(F("Formatting and sanity boundaries"));
     const timestamp_t unixUtc = static_cast<timestamp_t>(1782864000LL);
@@ -221,8 +327,7 @@ void testFormattingAndSanity() {
     CHECK_STRING("ISO conversion supports UTC+05:30",
                  "2026-07-01T05:30:00+05:30", buffer);
     TimeUtils::formatISO8601(buffer, localTime, -5);
-    CHECK_STRING("legacy ISO hour offset remains supported",
-                 "2026-06-30T19:00:00-05:00", buffer);
+    CHECK_STRING("hour-valued ISO offset is rejected", "", buffer);
 
 #if EPOCHTIME_ENABLE_STRING_FORMATTING
     String rawISO = TimeUtils::formatISO8601(local, estUtcOffsetSeconds,
@@ -308,7 +413,7 @@ void testFormattingAndSanity() {
                 TimeUtils::isTimeSane(earliestLocal, estUtcOffsetSeconds,
                                       epochStart::unix_epoch));
     CHECK_EQUAL(
-        "legacy sane hour offset remains supported", 1,
+        "hour-valued sane offset is interpreted as seconds", 0,
         TimeUtils::isTimeSane(earliestLocal, -5, epochStart::unix_epoch));
     CHECK_EQUAL("second before sane range is rejected", 0,
                 TimeUtils::isTimeSane(earliestLocal - 1, estUtcOffsetSeconds,
@@ -404,13 +509,24 @@ void testCoreTimeAndTmConversions() {
 #endif
 
     tm utcParts = {};
-    TimeUtils::fillTimeParts(epochTime(unixUtc), utcParts);
+    CHECK_EQUAL("epochTime parts conversion succeeds", 1,
+                TimeUtils::fillTimeParts(epochTime(unixUtc), utcParts));
     CHECK_EQUAL("epochTime parts have the UTC hour", 0, utcParts.tm_hour);
     CHECK_EQUAL("epochTime parts have the UTC day", 1, utcParts.tm_mday);
 
+    tm offsetParts = {};
+    CHECK_EQUAL("offset epochTime parts conversion succeeds", 1,
+                TimeUtils::fillTimeParts(epochTime(unixUtc),
+                                         estUtcOffsetSeconds, offsetParts));
+    CHECK_EQUAL("offset epochTime parts have the local hour", 19,
+                offsetParts.tm_hour);
+    CHECK_EQUAL("offset epochTime parts have the local day", 30,
+                offsetParts.tm_mday);
+
     tm rawParts = {};
-    TimeUtils::fillTimeParts(local, estUtcOffsetSeconds, epochStart::unix_epoch,
-                             rawParts);
+    CHECK_EQUAL("raw parts conversion succeeds", 1,
+                TimeUtils::fillTimeParts(local, estUtcOffsetSeconds,
+                                         epochStart::unix_epoch, rawParts));
     CHECK_EQUAL("raw parts have the UTC hour", 0, rawParts.tm_hour);
     CHECK_EQUAL("raw parts have the UTC day", 1, rawParts.tm_mday);
 
@@ -507,6 +623,7 @@ void setup() {
     printCoreDetails();
 
     testOffsetAndEpochConversions();
+    testFixedFormatting();
     testFormattingAndSanity();
     testCoreTimeAndTmConversions();
     testWideGpsTimestamps();

@@ -175,6 +175,17 @@ enum class epochStart : timestamp_t {
                     ///< behind the UNIX epoch)
 };
 
+/**
+ * @brief Select one of the deterministic fixed timestamp formats.
+ */
+enum class fixedTimeFormat : uint8_t {
+    compact_date,       ///< `YYYYMMDD` (9-byte buffer including terminator).
+    compact_date_time,  ///< `YYYYMMDD_HHMMSS` (16-byte buffer including
+                        ///< terminator).
+    calendar_date_time  ///< `YYYY-MM-DD HH:MM:SS` (20-byte buffer including
+                        ///< terminator).
+};
+
 
 /**
  * @brief A class for time objects that are aware of their epoch start.
@@ -285,9 +296,8 @@ class epochTime {
  * @note This is a static-only class with all static functions and a deleted
  * constructor.
  *
- * @important All UTC-offset parameters are expressed in seconds. For backward
- * compatibility with releases through 1.1.1, formatISO8601() and isTimeSane()
- * interpret values from -24 through +24 as hours and convert them to seconds.
+ * @important All UTC-offset parameters are expressed in seconds. Values from
+ * -24 through +24 are not interpreted as hours.
  *
  * This class provides utilities for:
  * - Formatting timestamps into ISO8601 and custom string formats
@@ -298,6 +308,18 @@ class TimeUtils {
  public:
     // Since all methods are static, disallow instantiation of this class.
     TimeUtils() = delete;
+
+    /**
+     * @brief Format an epoch time as ISO8601 using its retained UTC offset.
+     *
+     * The buffer must be at least 26 bytes long. The resulting string is
+     * `YYYY-MM-DDThh:mm:ss+hh:mm` (25 characters plus the null terminator).
+     *
+     * @param buffer A buffer of at least 26 bytes.
+     * @param in_time The time to format using the offset supplied when it was
+     * constructed.
+     */
+    static void formatISO8601(char* buffer, epochTime in_time);
 
     /**
      * @brief Format an epoch time as ISO8601 into a caller-supplied buffer.
@@ -312,6 +334,10 @@ class TimeUtils {
      * @param in_time The time to format.
      * @param utcOffsetSeconds The offset from UTC in seconds for the printed
      * time. The offset must be a whole number of minutes.
+     * @important The retained offset is interpreted as **seconds**.  This is a
+     * breaking change from versions <= 1.1.1 which interpreted the offset as
+     * hours and version 1.2.0 which attempted to normalize values from -24 - 24
+     * as hours.
      */
     static void formatISO8601(char* buffer, epochTime in_time,
                               int32_t utcOffsetSeconds);
@@ -328,9 +354,54 @@ class TimeUtils {
      * @param utcOffsetSeconds The input and output offset from UTC in seconds.
      * The offset must be a whole number of minutes.
      * @param epoch The epoch of the input timestamp.
+     * @important The retained offset is interpreted as **seconds**.  This is a
+     * breaking change from versions <= 1.1.1 which interpreted the offset as
+     * hours and version 1.2.0 which attempted to normalize values from -24 - 24
+     * as hours.
      */
     static void formatISO8601(char* buffer, timestamp_t epochSeconds,
                               int32_t utcOffsetSeconds, epochStart epoch);
+
+    /**
+     * @brief Format a timestamp in a deterministic fixed format.
+     *
+     * The input instant is formatted in the UTC offset retained by in_time.
+     * This function does not use String, snprintf(), or strftime().
+     *
+     * @param buffer The output buffer.
+     * @param bufferSize The total output-buffer size in bytes. Required sizes
+     * are 9 bytes for compact_date, 16 bytes for compact_date_time, and 20
+     * bytes for calendar_date_time.
+     * @param in_time The time to format using its retained UTC offset.
+     * @param format The fixed output format.
+     * @return The number of characters written, excluding the null terminator,
+     * or zero on invalid arguments, inadequate buffer space, an unsupported
+     * format, or failed calendar conversion.
+     *
+     * @note A non-empty buffer is always null terminated. On failure, its first
+     * byte is set to the null terminator.
+     */
+    static size_t formatTimestamp(char* buffer, size_t bufferSize,
+                                  epochTime in_time, fixedTimeFormat format);
+
+    /**
+     * @brief Format a UTC offset as `Z`, `+HH:MM`, or `-HH:MM`.
+     *
+     * UTC requires a 2-byte buffer. Nonzero offsets require a 7-byte buffer.
+     * The offset must be expressed in seconds, be a whole number of minutes,
+     * and have an absolute value no greater than 99 hours 59 minutes.
+     *
+     * @param buffer The output buffer.
+     * @param bufferSize The total output-buffer size in bytes.
+     * @param utcOffsetSeconds The signed offset from UTC in seconds.
+     * @return The number of characters written, excluding the null terminator,
+     * or zero on invalid arguments or inadequate buffer space.
+     *
+     * @note A non-empty buffer is always null terminated. On failure, its first
+     * byte is set to the null terminator.
+     */
+    static size_t formatUtcOffset(char* buffer, size_t bufferSize,
+                                  int32_t utcOffsetSeconds);
 
 #if EPOCHTIME_ENABLE_STRING_FORMATTING
     /**
@@ -343,6 +414,10 @@ class TimeUtils {
      * time. The offset must be a whole number of minutes.
      * @param epoch The epoch of the input epoch time.
      * @return An ISO8601 formatted String.
+     * @important utcOffsetSeconds is always interpreted as **seconds**.  This
+     * is a breaking change from versions <= 1.1.1 which interpreted the offset
+     * as hours and version 1.2.0 which attempted to normalize values from -24 -
+     * 24 as hours.
      *
      * @warning This function does **not** change the timezone of the input
      * epoch time. It assumes that the input timestamp value is already in the
@@ -358,6 +433,10 @@ class TimeUtils {
      * @param utcOffsetSeconds The offset from UTC in seconds for the printed
      * time. The offset must be a whole number of minutes.
      * @return An ISO8601 formatted String.
+     * @important utcOffsetSeconds is always interpreted as **seconds**.  This
+     * is a breaking change from versions <= 1.1.1 which interpreted the offset
+     * as hours and version 1.2.0 which attempted to normalize values from -24 -
+     * 24 as hours.
      *
      * @remark This function assumes that the input epochTime object was created
      * with the correct UTC offset. It **will** convert the time to the given
@@ -566,6 +645,10 @@ class TimeUtils {
      * @param epoch The type of epoch to use (i.e., the standard for the start
      * of the epoch).
      * @return True if the given time passes sanity range checking.
+     * @important utcOffsetSeconds is always interpreted as **seconds**.  This
+     * is a breaking change from versions <= 1.1.1 which interpreted the offset
+     * as hours and version 1.2.0 which attempted to normalize values from -24 -
+     * 24 as hours.
      */
     static bool isTimeSane(timestamp_t ts, int32_t utcOffsetSeconds,
                            epochStart epoch);
@@ -736,8 +819,27 @@ class TimeUtils {
      *
      * @param in_time An epochTime object.
      * @param timeParts The tm structure to store the converted calendar time.
+     * @return True on successful calendar conversion. On failure, timeParts is
+     * cleared to all zeros.
+     * @note AVR libc does not report `gmtime_r()` conversion status, so this
+     * function returns true after AVR calendar conversion.
      */
-    static void fillTimeParts(epochTime in_time, tm& timeParts);
+    static bool fillTimeParts(epochTime in_time, tm& timeParts);
+
+    /**
+     * @brief Convert a fully-defined epochTime to a tm struct at a selected UTC
+     * offset.
+     *
+     * @param in_time An epochTime object.
+     * @param utcOffsetSeconds The output calendar offset from UTC in seconds.
+     * @param timeParts The tm structure to store the converted calendar time.
+     * @return True on successful calendar conversion. On failure, timeParts is
+     * cleared to all zeros.
+     * @note AVR libc does not report `gmtime_r()` conversion status, so this
+     * function returns true after AVR calendar conversion.
+     */
+    static bool fillTimeParts(epochTime in_time, int32_t utcOffsetSeconds,
+                              tm& timeParts);
 
     /**
      * @brief Convert a timestamp to a tm struct with all time parts in UTC.
@@ -748,8 +850,12 @@ class TimeUtils {
      * seconds.
      * @param in_epoch The epoch of the input timestamp.
      * @param timeParts The tm structure to store the converted calendar time.
+     * @return True on successful calendar conversion. On failure, timeParts is
+     * cleared to all zeros.
+     * @note AVR libc does not report `gmtime_r()` conversion status, so this
+     * function returns true after AVR calendar conversion.
      */
-    static void fillTimeParts(timestamp_t in_timestamp,
+    static bool fillTimeParts(timestamp_t in_timestamp,
                               int32_t in_utcOffsetSeconds, epochStart in_epoch,
                               tm& timeParts);
 
