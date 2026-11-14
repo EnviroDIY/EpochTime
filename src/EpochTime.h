@@ -15,10 +15,10 @@
 #define SRC_EPOCHTIME_H_
 
 // Set EPOCHTIME_ENABLE_STRING_FORMATTING to 0 or set
-// EPOCHTIME_DISABLE_STRING_FORMATTING to 1 before including this header to omit
-// all String-returning convenience functions from the library.
+// EPOCHTIME_DISABLE_STRING_FORMATTING to 1 to omit all String-returning
+// convenience functions from the library.
 #if !defined(EPOCHTIME_ENABLE_STRING_FORMATTING) && \
-    !defined(EPOCHTIME_DISABLE_STRING_FORMATTING)
+    EPOCHTIME_DISABLE_STRING_FORMATTING == 0
 /// Enable string formatting by default if not explicitly disabled
 #define EPOCHTIME_ENABLE_STRING_FORMATTING 1
 #endif
@@ -26,9 +26,8 @@
 // Set EPOCHTIME_ENABLE_STRFTIME to 0 or set EPOCHTIME_DISABLE_STRFTIME to 1 to
 // omit the generic strftime()-based formatting API. ISO8601 formatting does not
 // depend on strftime().
-#if !defined(EPOCHTIME_ENABLE_STRFTIME) || \
-    (defined(EPOCHTIME_DISABLE_STRFTIME) && EPOCHTIME_DISABLE_STRFTIME != 0)
-/// Disable strftime-based formatting if explicitly requested
+#if !defined(EPOCHTIME_ENABLE_STRFTIME) && EPOCHTIME_DISABLE_STRFTIME == 0
+/// disable strftime-based formatting by default if not explicitly enabled
 #define EPOCHTIME_ENABLE_STRFTIME 0
 #endif
 
