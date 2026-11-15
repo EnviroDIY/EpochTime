@@ -514,14 +514,15 @@ void testCoreTimeAndTmConversions() {
     CHECK_EQUAL("epochTime parts have the UTC hour", 0, utcParts.tm_hour);
     CHECK_EQUAL("epochTime parts have the UTC day", 1, utcParts.tm_mday);
 
-    tm offsetParts = {};
+    tm filledOffsetParts = {};
     CHECK_EQUAL("offset epochTime parts conversion succeeds", 1,
                 TimeUtils::fillTimeParts(epochTime(unixUtc),
-                                         estUtcOffsetSeconds, offsetParts));
+                                         estUtcOffsetSeconds,
+                                         filledOffsetParts));
     CHECK_EQUAL("offset epochTime parts have the local hour", 19,
-                offsetParts.tm_hour);
+                filledOffsetParts.tm_hour);
     CHECK_EQUAL("offset epochTime parts have the local day", 30,
-                offsetParts.tm_mday);
+                filledOffsetParts.tm_mday);
 
     tm rawParts = {};
     CHECK_EQUAL("raw parts conversion succeeds", 1,
