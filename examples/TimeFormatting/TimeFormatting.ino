@@ -9,6 +9,7 @@
  * ========================================================================== */
 
 // Include the main header
+#include <Arduino.h>
 #include <EpochTime.h>
 
 #if (defined(ARDUINO_NRF52840_FEATHER)) && !defined(ADAFRUIT_TINYUSB_H_)
@@ -99,12 +100,14 @@ void setup() {
     Serial.println(F("----------------------------"));
 
     // Print the core epoch and timezone
+#if EPOCHTIME_ENABLE_STRING_FORMATTING
     Serial.print(F("Core epoch: "));
     Serial.println(TimeUtils::printEpochName(TimeUtils::getCoreEpochStart()));
     Serial.print(F("Core epoch start: "));
     Serial.println(TimeUtils::printEpochStart(TimeUtils::getCoreEpochStart()));
     Serial.print(F("Core timezone: "));
     Serial.println(TimeUtils::getCoreTimeZone());
+#endif
 
     Serial.println(F("\n\nEpoch Time and Unix Timestamp Conversion Example"));
     Serial.println(F("-----------------------"));
@@ -113,11 +116,13 @@ void setup() {
     Serial.println(static_cast<uint32_t>(myTimestamp));
     Serial.print(F("Input Offset from UTC in Seconds: "));
     Serial.println(myUtcOffsetSeconds);
+#if EPOCHTIME_ENABLE_STRING_FORMATTING
     Serial.print("Input Epoch: ");
     Serial.print(TimeUtils::printEpochName(myEpoch));
     Serial.print(" (start: ");
     Serial.print(TimeUtils::printEpochStart(myEpoch));
     Serial.println(")");
+#endif
 
     // Convert the timestamp to a timestamp with a different epoch and offset
     // convention
@@ -341,6 +346,7 @@ void setup() {
     // Print the time in various formats
     Serial.println(F("\n\nTime Formatting Example"));
     Serial.println(F("-----------------------"));
+#if EPOCHTIME_ENABLE_STRING_FORMATTING
     Serial.print(F("ISO 8601, UTC-5, from the epochTime object (timezone "
                    "should be converted): "));
     Serial.println(TimeUtils::formatISO8601(myEpochTime, -5 * 3600L));
@@ -353,7 +359,25 @@ void setup() {
     } else {
         Serial.println(formattedTimestamp);
     }
-#if EPOCHTIME_ENABLE_STRFTIME
+#endif
+    char fixedTimestamp[20] = {};
+    Serial.print(F("Calendar date and time with the retained offset: "));
+    if (TimeUtils::formatTimestamp(fixedTimestamp, sizeof(fixedTimestamp),
+                                   myEpochTime,
+                                   fixedTimeFormat::calendar_date_time) == 0) {
+        Serial.println(F("Unable to format timestamp."));
+    } else {
+        Serial.println(fixedTimestamp);
+    }
+    char utcOffset[7] = {};
+    Serial.print(F("Input UTC offset: "));
+    if (TimeUtils::formatUtcOffset(utcOffset, sizeof(utcOffset),
+                                   myUtcOffsetSeconds) == 0) {
+        Serial.println(F("Unable to format UTC offset."));
+    } else {
+        Serial.println(utcOffset);
+    }
+#if EPOCHTIME_ENABLE_STRFTIME && EPOCHTIME_ENABLE_STRING_FORMATTING
     Serial.print(F("Custom Format, from an epochTime object (input offset "
                    "preserved): "));
     Serial.println(

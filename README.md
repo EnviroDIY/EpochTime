@@ -7,6 +7,8 @@ The library provides two main classes
 - The epochTime class, which creates a time object aware of its own internal epoch.
 - The TimeUtils class, which is a class of static functions for
   - Formatting timestamps into ISO8601 and custom string formats
+  - Formatting deterministic compact and calendar timestamps into caller-owned buffers
+  - Formatting UTC offsets as `Z` or signed hours and minutes
   - Validating timestamp sanity
   - Abstracting processor/Arduino core epoch and timezone settings
 
@@ -17,8 +19,13 @@ It does not support full time zones (only static offsets from UTC), daylight sav
 ## UTC offset units
 
 All UTC-offset parameters use signed seconds, with positive values east of UTC and negative values west of UTC.
-For backward compatibility, `TimeUtils::formatISO8601()` and the timestamp overload of `TimeUtils::isTimeSane()` interpret values from -24 through +24 as legacy hour values and convert them to seconds.
+Values from -24 through +24 are interpreted as seconds, not hours.
+Code using legacy hour-valued arguments must convert them to seconds, such as replacing `-5` with `-5 * 3600L` for UTC-5.
 ISO 8601 offsets must be a whole number of minutes, so fractional-hour offsets such as UTC+05:30 are supported.
+
+The always-available buffer APIs do not depend on Arduino `String` or `strftime()`.
+`TimeUtils::formatTimestamp()` preserves the input `epochTime` object's retained offset and supports `YYYYMMDD`, `YYYYMMDD_HHMMSS`, and `YYYY-MM-DD HH:MM:SS` output.
+`TimeUtils::formatUtcOffset()` produces `Z`, `+HH:MM`, or `-HH:MM` output.
 
 Parts of this library's functionality exits in **many** Arduino libraries supporting clocks, but I found none that had complete enough or well enough abstracted functionality to be portable, so I created this one.
 

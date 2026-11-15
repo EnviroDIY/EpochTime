@@ -21,6 +21,8 @@ operator!=	KEYWORD2
 getTimestamp	KEYWORD2
 TimeUtils	KEYWORD2
 formatISO8601	KEYWORD2
+formatTimestamp	KEYWORD2
+formatUtcOffset	KEYWORD2
 formatDateTime	KEYWORD2
 printEpochName	KEYWORD2
 printEpochStart	KEYWORD2
@@ -52,3 +54,6 @@ unix_epoch	LITERAL1
 y2k_epoch	LITERAL1
 gps_epoch	LITERAL1
 nist_epoch	LITERAL1
+compact_date	LITERAL1
+compact_date_time	LITERAL1
+calendar_date_time	LITERAL1

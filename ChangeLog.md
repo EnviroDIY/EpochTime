@@ -14,6 +14,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - [ChangeLog](#changelog)
   - [Unreleased](#unreleased)
+  - [1.3.0](#130)
   - [1.2.0](#120)
   - [1.1.1](#111)
   - [1.1.0](#110)
@@ -32,6 +33,26 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Removed
 
 ### Fixed
+
+***
+
+## [1.3.0]
+
+### Changed
+
+- Return conversion status from all three `TimeUtils::fillTimeParts()` overloads while preserving source compatibility for callers that ignore the result.
+- **BREAKING** Remove legacy hour-valued UTC-offset handling from `TimeUtils::formatISO8601()` and `TimeUtils::isTimeSane()`; all UTC-offset arguments are now interpreted strictly as signed seconds, so callers must replace values such as `-5` with `-5 * 3600L`.
+
+### Added
+
+- Add a public `TimeUtils::fillTimeParts()` overload for converting an `epochTime` to calendar parts at a selected UTC offset.
+- Add an always-available `TimeUtils::formatISO8601()` buffer overload that formats an `epochTime` with its retained UTC offset.
+- Add `fixedTimeFormat` and the always-available, buffer-based `TimeUtils::formatTimestamp()` for compact dates, compact date-times, and calendar date-times without `String`, `snprintf()`, or `strftime()`.
+- Add the always-available `TimeUtils::formatUtcOffset()` buffer helper for `Z`, positive, negative, and fractional-hour UTC offsets.
+
+### Fixed
+
+- Clear output calendar parts and report failure when the processor core cannot convert a timestamp.
 
 ***
 
@@ -93,7 +114,8 @@ Initial release, taking code from the ModularSensors library
 
 ***
 
-[Unreleased]: https://github.com/EnviroDIY/EpochTime/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/EnviroDIY/EpochTime/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/EnviroDIY/EpochTime/releases/tag/v1.3.0
 [1.2.0]: https://github.com/EnviroDIY/EpochTime/releases/tag/v1.2.0
 [1.1.1]: https://github.com/EnviroDIY/EpochTime/releases/tag/v1.1.1
 [1.1.0]: https://github.com/EnviroDIY/EpochTime/releases/tag/v1.1.0

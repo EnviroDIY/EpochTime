@@ -142,3 +142,4 @@ AGENTS.md
 .bumpversion.toml
 
 # Other stuff
+continuous_integration/local_path.py

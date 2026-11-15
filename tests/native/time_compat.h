@@ -11,8 +11,8 @@
  * @param timer Pointer to the time value to convert.
  * @param result Pointer to the tm structure that receives the UTC result.
  */
-inline void epochTimeTestGmtimeR(const time_t* timer, tm* result) {
-    gmtime_s(result, timer);
+inline tm* epochTimeTestGmtimeR(const time_t* timer, tm* result) {
+    return gmtime_s(result, timer) == 0 ? result : nullptr;
 }
 #define gmtime_r epochTimeTestGmtimeR
 #endif
